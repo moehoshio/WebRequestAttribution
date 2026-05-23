@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  nginx-req-attr:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+      - /var/log/nginx:/var/log/nginx:ro
+      - ./config.json:/app/config.json:ro
+    restart: unless-stopped
