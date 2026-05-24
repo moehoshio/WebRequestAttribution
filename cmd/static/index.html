@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nginx Request Attribution</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        h1 { margin-bottom: 20px; color: #2c3e50; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .stat-card h3 { font-size: 14px; color: #666; margin-bottom: 8px; }
+        .stat-card .value { font-size: 28px; font-weight: bold; color: #2c3e50; }
+        .filters { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px; }
+        .filters h2 { margin-bottom: 12px; font-size: 16px; }
+        .filter-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        .filter-group label { font-size: 12px; color: #666; font-weight: 500; }
+        .filter-group input, .filter-group select { padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; min-width: 140px; }
+        .btn { padding: 8px 20px; background: #3498db; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .btn:hover { background: #2980b9; }
+        .btn-secondary { background: #95a5a6; }
+        .btn-secondary:hover { background: #7f8c8d; }
+        .panel { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 24px; }
+        .panel h2 { margin-bottom: 16px; font-size: 18px; color: #2c3e50; }
+        .tabs { display: flex; gap: 0; margin-bottom: 20px; border-bottom: 2px solid #eee; }
+        .tab { padding: 10px 20px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; font-weight: 500; color: #666; }
+        .tab.active { color: #3498db; border-bottom-color: #3498db; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 600; color: #555; position: sticky; top: 0; }
+        tr:hover { background: #f8f9fa; }
+        .chart-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .chart-box { min-height: 200px; }
+        .bar-chart { display: flex; flex-direction: column; gap: 6px; }
+        .bar-item { display: flex; align-items: center; gap: 8px; }
+        .bar-label { min-width: 120px; font-size: 12px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .bar-track { flex: 1; height: 24px; background: #eee; border-radius: 4px; overflow: hidden; }
+        .bar-fill { height: 100%; background: linear-gradient(90deg, #3498db, #2ecc71); border-radius: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 11px; color: #fff; font-weight: 500; min-width: fit-content; }
+        .pagination { display: flex; gap: 8px; align-items: center; margin-top: 16px; justify-content: center; }
+        .page-info { font-size: 14px; color: #666; }
+        @media (max-width: 768px) { .chart-container { grid-template-columns: 1fr; } .filter-row { flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Nginx Request Attribution</h1>
+
+        <div class="stats-grid" id="statsCards"></div>
+
+        <div class="filters">
+            <h2>🔍 篩選條件 Filters</h2>
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>開始日期 Start</label>
+                    <input type="date" id="filterStart">
+                </div>
+                <div class="filter-group">
+                    <label>結束日期 End</label>
+                    <input type="date" id="filterEnd">
+                </div>
+                <div class="filter-group">
+                    <label>IP</label>
+                    <input type="text" id="filterIP" placeholder="e.g. 192.168">
+                </div>
+                <div class="filter-group">
+                    <label>路徑 Path</label>
+                    <input type="text" id="filterPath" placeholder="e.g. /api">
+                </div>
+                <div class="filter-group">
+                    <label>域名 Domain</label>
+                    <input type="text" id="filterDomain" placeholder="e.g. example.com">
+                </div>
+                <div class="filter-group">
+                    <label>查詢 Query</label>
+                    <input type="text" id="filterQuery" placeholder="e.g. id=123">
+                </div>
+                <div class="filter-group">
+                    <label>OS</label>
+                    <select id="filterOS">
+                        <option value="">全部 All</option>
+                        <option value="Windows">Windows</option>
+                        <option value="macOS">macOS</option>
+                        <option value="Linux">Linux</option>
+                        <option value="iOS">iOS</option>
+                        <option value="Android">Android</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>瀏覽器 Browser</label>
+                    <select id="filterBrowser">
+                        <option value="">全部 All</option>
+                        <option value="Chrome">Chrome</option>
+                        <option value="Firefox">Firefox</option>
+                        <option value="Safari">Safari</option>
+                        <option value="Edge">Edge</option>
+                        <option value="Opera">Opera</option>
+                        <option value="Bot">Bot</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>狀態碼 Status</label>
+                    <input type="number" id="filterStatus" placeholder="e.g. 200">
+                </div>
+                <div class="filter-group">
+                    <label>關鍵詞 Keyword</label>
+                    <input type="text" id="filterKeyword" placeholder="keyword">
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn" onclick="applyFilters()">搜尋 Search</button>
+                        <button class="btn btn-secondary" onclick="clearFilters()">清除 Clear</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="overview" onclick="switchTab('overview')">📈 總覽 Overview</div>
+            <div class="tab" data-tab="requests" onclick="switchTab('requests')">📋 請求列表 Requests</div>
+        </div>
+
+        <div id="tab-overview" class="panel">
+            <div class="chart-container" id="charts"></div>
+        </div>
+
+        <div id="tab-requests" class="panel" style="display:none;">
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>時間 Time</th>
+                            <th>IP</th>
+                            <th>Method</th>
+                            <th>路徑 Path</th>
+                            <th>Query</th>
+                            <th>狀態 Status</th>
+                            <th>域名 Domain</th>
+                            <th>OS</th>
+                            <th>瀏覽器 Browser</th>
+                            <th>UA</th>
+                        </tr>
+                    </thead>
+                    <tbody id="requestsBody"></tbody>
+                </table>
+            </div>
+            <div class="pagination">
+                <button class="btn btn-secondary" onclick="prevPage()">← 上一頁</button>
+                <span class="page-info" id="pageInfo">Page 1</span>
+                <button class="btn btn-secondary" onclick="nextPage()">下一頁 →</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        const pageSize = 50;
+        let totalResults = 0;
+
+        function getFilters() {
+            const params = new URLSearchParams();
+            const fields = {
+                start: 'filterStart', end: 'filterEnd', ip: 'filterIP',
+                path: 'filterPath', domain: 'filterDomain', query: 'filterQuery',
+                os: 'filterOS', browser: 'filterBrowser', status: 'filterStatus',
+                keyword: 'filterKeyword'
+            };
+            for (const [key, id] of Object.entries(fields)) {
+                const val = document.getElementById(id).value;
+                if (val) params.set(key, val);
+            }
+            return params;
+        }
+
+        function applyFilters() {
+            currentPage = 1;
+            loadStats();
+            loadRequests();
+        }
+
+        function clearFilters() {
+            document.querySelectorAll('.filters input, .filters select').forEach(el => el.value = '');
+            applyFilters();
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
+            document.getElementById('tab-overview').style.display = tab === 'overview' ? 'block' : 'none';
+            document.getElementById('tab-requests').style.display = tab === 'requests' ? 'block' : 'none';
+            if (tab === 'requests') loadRequests();
+        }
+
+        async function loadStats() {
+            const params = getFilters();
+            try {
+                const res = await fetch('/api/stats?' + params.toString());
+                const data = await res.json();
+                renderStatsCards(data);
+                renderCharts(data);
+            } catch (e) {
+                console.error('Failed to load stats:', e);
+            }
+        }
+
+        function renderStatsCards(data) {
+            const cards = document.getElementById('statsCards');
+            cards.innerHTML =
+                '<div class="stat-card"><h3>總請求數 Total Requests</h3><div class="value">' + (data.total_requests ? data.total_requests.toLocaleString() : '0') + '</div></div>' +
+                '<div class="stat-card"><h3>唯一路徑 Unique Paths</h3><div class="value">' + (data.top_paths ? data.top_paths.length : 0) + '</div></div>' +
+                '<div class="stat-card"><h3>唯一IP Unique IPs</h3><div class="value">' + (data.top_ips ? data.top_ips.length : 0) + '</div></div>' +
+                '<div class="stat-card"><h3>唯一域名 Domains</h3><div class="value">' + (data.top_domains ? data.top_domains.length : 0) + '</div></div>';
+        }
+
+        function renderBarChart(title, items) {
+            if (!items || items.length === 0) return '<div class="chart-box"><h3>' + title + '</h3><p style="color:#999;padding:20px 0;">暫無數據 No data</p></div>';
+            var max = items[0].count;
+            var bars = items.slice(0, 10).map(function(item) {
+                var pct = Math.max((item.count / max) * 100, 8);
+                return '<div class="bar-item"><span class="bar-label" title="' + escapeHtml(item.name) + '">' + escapeHtml(item.name || '(empty)') + '</span><div class="bar-track"><div class="bar-fill" style="width:' + pct + '%">' + item.count + '</div></div></div>';
+            }).join('');
+            return '<div class="chart-box"><h3 style="margin-bottom:12px;">' + title + '</h3><div class="bar-chart">' + bars + '</div></div>';
+        }
+
+        function escapeHtml(str) {
+            var div = document.createElement('div');
+            div.appendChild(document.createTextNode(str));
+            return div.innerHTML;
+        }
+
+        function renderCharts(data) {
+            var container = document.getElementById('charts');
+            container.innerHTML =
+                renderBarChart('🛤️ 熱門路徑 Top Paths', data.top_paths) +
+                renderBarChart('🌐 熱門IP Top IPs', data.top_ips) +
+                renderBarChart('🏷️ 域名 Domains', data.top_domains) +
+                renderBarChart('💻 作業系統 OS', data.top_os) +
+                renderBarChart('🌍 瀏覽器 Browsers', data.top_browsers) +
+                renderBarChart('📊 狀態碼 Status Codes', data.status_codes) +
+                renderBarChart('🔑 關鍵詞 Keywords', data.top_keywords);
+        }
+
+        async function loadRequests() {
+            var params = getFilters();
+            params.set('limit', pageSize);
+            params.set('offset', (currentPage - 1) * pageSize);
+            try {
+                var res = await fetch('/api/requests?' + params.toString());
+                var data = await res.json();
+                totalResults = data.total;
+                renderRequests(data.rows);
+                document.getElementById('pageInfo').textContent =
+                    '第 ' + currentPage + ' 頁 / 共 ' + Math.ceil(totalResults / pageSize) + ' 頁 (' + totalResults + ' 條)';
+            } catch (e) {
+                console.error('Failed to load requests:', e);
+            }
+        }
+
+        function renderRequests(rows) {
+            var tbody = document.getElementById('requestsBody');
+            if (!rows || rows.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:#999;">暫無數據 No data</td></tr>';
+                return;
+            }
+            tbody.innerHTML = rows.map(function(r) {
+                return '<tr>' +
+                    '<td>' + new Date(r.timestamp).toLocaleString() + '</td>' +
+                    '<td>' + escapeHtml(r.ip) + '</td>' +
+                    '<td>' + escapeHtml(r.method) + '</td>' +
+                    '<td title="' + escapeHtml(r.path) + '">' + escapeHtml(r.path.length > 40 ? r.path.slice(0, 40) + '...' : r.path) + '</td>' +
+                    '<td title="' + escapeHtml(r.query || '') + '">' + (r.query ? escapeHtml(r.query.length > 20 ? r.query.slice(0, 20) + '...' : r.query) : '-') + '</td>' +
+                    '<td>' + r.status + '</td>' +
+                    '<td>' + escapeHtml(r.domain || '-') + '</td>' +
+                    '<td>' + escapeHtml(r.os) + '</td>' +
+                    '<td>' + escapeHtml(r.browser) + '</td>' +
+                    '<td title="' + escapeHtml(r.user_agent || '') + '">' + escapeHtml((r.user_agent || '').slice(0, 30)) + '...</td>' +
+                    '</tr>';
+            }).join('');
+        }
+
+        function prevPage() { if (currentPage > 1) { currentPage--; loadRequests(); } }
+        function nextPage() { if (currentPage * pageSize < totalResults) { currentPage++; loadRequests(); } }
+
+        // Initial load
+        loadStats();
+    </script>
+</body>
+</html>
