@@ -1,6 +1,6 @@
 # Nginx Request Attribution
 
-🌐 **English** | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md)
+🌐 **English** | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
 A lightweight Nginx access log analytics tool with statistics dashboard and real-time monitoring.
 

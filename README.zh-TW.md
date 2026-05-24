@@ -1,6 +1,6 @@
 # Nginx Request Attribution
 
-🌐 [English](README.md) | **繁體中文** | [日本語](README.ja.md)
+🌐 [English](README.md) | **繁體中文** | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
 一個輕量級的 Nginx 存取日誌分析工具，提供統計報表和即時監控功能。
 

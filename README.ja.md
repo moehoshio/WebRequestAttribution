@@ -1,6 +1,6 @@
 # Nginx Request Attribution
 
-🌐 [English](README.md) | [繁體中文](README.zh-TW.md) | **日本語**
+🌐 [English](README.md) | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md) | **日本語**
 
 軽量な Nginx アクセスログ分析ツール。統計ダッシュボードとリアルタイム監視機能を提供します。
 
