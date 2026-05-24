@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/moehoshio/nginx-request-attribution/internal/storage"
+	"github.com/moehoshio/web-request-attribution/internal/storage"
 )
 
 type Handler struct {

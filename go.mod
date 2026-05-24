@@ -1,4 +1,4 @@
-module github.com/moehoshio/nginx-request-attribution
+module github.com/moehoshio/web-request-attribution
 
 go 1.24.13
 

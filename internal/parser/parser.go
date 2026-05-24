@@ -3,13 +3,12 @@ package parser
 import (
 	"fmt"
 	"net/url"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
 
-// LogEntry represents a parsed nginx access log line.
+// LogEntry represents a parsed web server access log line.
 type LogEntry struct {
 	IP        string
 	Timestamp time.Time
@@ -24,32 +23,27 @@ type LogEntry struct {
 	Domain    string
 }
 
-// Combined log format regex:
-// $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
-var combinedRegex = regexp.MustCompile(
-	`^(\S+)\s+\S+\s+\S+\s+\[([^\]]+)\]\s+"([^"]+)"\s+(\d+)\s+(\d+)\s+"([^"]*?)"\s+"([^"]*?)"`,
-)
-
-// Extended combined with virtual host:
-// $host $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
-var vhostCombinedRegex = regexp.MustCompile(
-	`^(\S+)\s+(\S+)\s+\S+\s+\S+\s+\[([^\]]+)\]\s+"([^"]+)"\s+(\d+)\s+(\d+)\s+"([^"]*?)"\s+"([^"]*?)"`,
-)
-
+// ParseLine performs auto-detection across known formats (currently Nginx then
+// Apache combined). It is retained as a convenience for callers that have no
+// configured format (e.g. the syslog receiver, where messages may originate
+// from different sources).
 func ParseLine(line string) (*LogEntry, error) {
 	line = strings.TrimSpace(line)
 	if line == "" {
 		return nil, fmt.Errorf("empty line")
 	}
 
-	// Try vhost combined first
+	// Try Nginx vhost combined first (most specific).
 	if m := vhostCombinedRegex.FindStringSubmatch(line); m != nil {
 		return parseVHostCombined(m)
 	}
-
-	// Try standard combined
+	// Standard combined (works for both Nginx and Apache combined).
 	if m := combinedRegex.FindStringSubmatch(line); m != nil {
 		return parseCombined(m)
+	}
+	// Fall back to Apache common (no referer/user-agent).
+	if m := apacheCommonRegex.FindStringSubmatch(line); m != nil {
+		return parseApacheCommon(m)
 	}
 
 	return nil, fmt.Errorf("line does not match known format")
@@ -69,7 +63,7 @@ func parseCombined(m []string) (*LogEntry, error) {
 	parseRequest(entry, m[3])
 
 	entry.Status, _ = strconv.Atoi(m[4])
-	entry.BodySize, _ = strconv.Atoi(m[5])
+	entry.BodySize = parseBodySize(m[5])
 	entry.Referer = m[6]
 	entry.UserAgent = m[7]
 
@@ -98,7 +92,7 @@ func parseVHostCombined(m []string) (*LogEntry, error) {
 	parseRequest(entry, m[4])
 
 	entry.Status, _ = strconv.Atoi(m[5])
-	entry.BodySize, _ = strconv.Atoi(m[6])
+	entry.BodySize = parseBodySize(m[6])
 	entry.Referer = m[7]
 	entry.UserAgent = m[8]
 
@@ -122,4 +116,14 @@ func parseRequest(entry *LogEntry, request string) {
 	if len(parts) >= 3 {
 		entry.Protocol = parts[2]
 	}
+}
+
+// parseBodySize accepts numeric strings or "-" (Apache common log convention
+// for zero-size responses).
+func parseBodySize(s string) int {
+	if s == "-" || s == "" {
+		return 0
+	}
+	n, _ := strconv.Atoi(s)
+	return n
 }

@@ -1,8 +1,8 @@
-# Nginx Request Attribution
+# Web Request Attribution
 
 🌐 **English** | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md) | [日本語](README.ja.md)
 
-A lightweight Nginx access log analytics tool with statistics dashboard and real-time monitoring.
+A lightweight web server (Nginx / Apache) access log analytics tool with statistics dashboard and real-time monitoring. Supports custom log formats.
 
 ## Screenshots
 
@@ -27,13 +27,13 @@ A lightweight Nginx access log analytics tool with statistics dashboard and real
 
 ```bash
 # Build
-go build -o nginx-req-attr ./cmd/
+go build -o web-req-attr ./cmd/
 
 # Import existing logs
-./nginx-req-attr -import /var/log/nginx/access.log
+./web-req-attr -import /var/log/nginx/access.log
 
 # Start service (log monitoring + Web GUI)
-./nginx-req-attr -config config.json
+./web-req-attr -config config.json
 ```
 
 ### Option 2: Docker Deploy
@@ -43,12 +43,12 @@ go build -o nginx-req-attr ./cmd/
 docker-compose up -d
 
 # Or manual Docker
-docker build -t nginx-req-attr .
+docker build -t web-req-attr .
 docker run -d \
   -p 8080:8080 \
   -v /var/log/nginx:/var/log/nginx:ro \
   -v ./data:/app/data \
-  nginx-req-attr
+  web-req-attr
 ```
 
 ## Configuration
@@ -57,35 +57,89 @@ Create `config.json`:
 
 ```json
 {
-  "log_path": "/var/log/nginx/access.log",
-  "log_format": "combined",
   "listen_addr": ":8080",
   "db_path": "./data/stats.db",
   "watch": true,
   "keywords": ["login", "admin", "api", "search"],
-  "input_mode": "file",
-  "syslog_addr": ":1514",
-  "syslog_proto": "udp"
+  "sources": [
+    {
+      "name": "nginx-main",
+      "type": "file",
+      "path": "/var/log/nginx/access.log",
+      "read_compressed": false,
+      "format": { "engine": "nginx", "preset": "combined" }
+    }
+  ]
 }
 ```
 
+### Top-level fields
+
 | Field | Description | Default |
 |---|---|---|
-| `log_path` | Nginx access log path | `/var/log/nginx/access.log` |
-| `log_format` | Log format (combined/vhost_combined) | `combined` |
 | `listen_addr` | HTTP server listen address | `:8080` |
 | `db_path` | SQLite database file path | `./data/stats.db` |
 | `watch` | Enable real-time log monitoring | `true` |
 | `keywords` | List of keywords to track | `[]` |
-| `input_mode` | Input mode (`file`/`syslog`/`both`) | `file` |
-| `syslog_addr` | Syslog listen address | `:1514` |
-| `syslog_proto` | Syslog protocol (`udp`/`tcp`/`both`) | `udp` |
+| `sources` | List of log sources to ingest from (see below) | `[]` |
 
-### Input Modes
+### Source fields
 
-- **`file`** — Uses fsnotify event-driven log file monitoring (default, efficient, no nginx config changes needed)
-- **`syslog`** — Starts a syslog receiver to receive nginx logs over the network (ideal for multi-instance aggregation)
-- **`both`** — Uses both file monitoring and syslog reception simultaneously
+Each entry in `sources` describes one input. Common fields:
+
+| Field | Description |
+|---|---|
+| `name` | Human-readable label (optional) |
+| `type` | `file` or `syslog` |
+| `format.engine` | `nginx`, `apache`, `custom`, or `auto` |
+| `format.preset` | For `nginx`/`apache`: e.g. `combined`, `common`, `vhost_combined` |
+| `format.pattern` | For `custom`: log pattern using Nginx-style `$variable` tokens |
+
+File-source fields:
+
+| Field | Description |
+|---|---|
+| `path` | Path to the live access log file |
+| `read_compressed` | If `true`, also import sibling `*.gz` files once on startup |
+
+Syslog-source fields:
+
+| Field | Description |
+|---|---|
+| `addr` | Listen address (e.g. `:1514`) |
+| `proto` | `udp`, `tcp`, or `both` |
+
+### Apache support
+
+Apache logs are currently supported by **reading log files** (or receiving them
+via syslog). Use `format.engine: "apache"` with one of the built-in presets
+(`common`, `combined`, `vhost_combined`).
+
+### Custom log format
+
+Set `format.engine` to `"custom"` and provide a `pattern` using Nginx-style
+`$variable` tokens, e.g.:
+
+```json
+"format": {
+  "engine": "custom",
+  "pattern": "$remote_addr - $remote_user [$time_local] \"$request\" $status $body_bytes_sent \"$http_referer\" \"$http_user_agent\""
+}
+```
+
+Supported variables: `$remote_addr`, `$remote_user`, `$time_local`, `$msec`,
+`$request`, `$request_method`, `$request_uri`, `$uri`, `$status`,
+`$body_bytes_sent`, `$bytes_sent`, `$http_referer`, `$http_user_agent`,
+`$http_host`, `$host`, `$server_name`, `$request_time`,
+`$upstream_response_time`. Unknown variables are tolerated (matched and
+discarded). Apache `%`-style LogFormat tokens are not yet supported — see
+[`docs/TODO.md`](docs/TODO.md).
+
+### Compressed logs
+
+Setting `read_compressed: true` on a file source imports rotated `.gz`
+archives in the same directory once on startup. Support for `.bz2` and `.xz`
+is tracked in [`docs/TODO.md`](docs/TODO.md).
 
 #### Syslog Mode Configuration Example
 
@@ -157,7 +211,7 @@ $host $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_s
 go test ./...
 
 # Build
-go build -o nginx-req-attr ./cmd/
+go build -o web-req-attr ./cmd/
 ```
 
 For detailed development guidelines, testing requirements, and contribution workflow, see [CONTRIBUTING.md](CONTRIBUTING.md).

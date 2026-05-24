@@ -2,37 +2,58 @@ package watcher
 
 import (
 	"bufio"
+	"compress/gzip"
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/moehoshio/nginx-request-attribution/internal/parser"
-	"github.com/moehoshio/nginx-request-attribution/internal/storage"
+	"github.com/moehoshio/web-request-attribution/internal/parser"
+	"github.com/moehoshio/web-request-attribution/internal/storage"
 )
 
 // FileWatcher monitors a log file using fsnotify for efficient event-driven watching.
 type FileWatcher struct {
-	store    *storage.Store
-	logPath  string
-	keywords []string
+	store          *storage.Store
+	logPath        string
+	keywords       []string
+	parser         parser.Parser
+	readCompressed bool
 }
 
 // NewFileWatcher creates a new fsnotify-based file watcher.
-func NewFileWatcher(store *storage.Store, logPath string, keywords []string) *FileWatcher {
+//
+// If p is nil, ParseLine auto-detection is used. When readCompressed is true,
+// any `.gz` siblings of logPath are imported once on startup before tailing the
+// live file.
+func NewFileWatcher(store *storage.Store, logPath string, keywords []string, p parser.Parser, readCompressed bool) *FileWatcher {
+	if p == nil {
+		p, _ = parser.New(parser.FormatConfig{Engine: "auto"})
+	}
 	return &FileWatcher{
-		store:    store,
-		logPath:  logPath,
-		keywords: keywords,
+		store:          store,
+		logPath:        logPath,
+		keywords:       keywords,
+		parser:         p,
+		readCompressed: readCompressed,
 	}
 }
 
 // Watch starts watching the log file for new entries using fsnotify.
 // It handles log rotation by detecting file truncation or recreation.
 func (fw *FileWatcher) Watch(ctx context.Context) error {
+	// Import any rotated `.gz` archives first if requested.
+	if fw.readCompressed {
+		if err := fw.importCompressedSiblings(ctx); err != nil {
+			log.Printf("File watcher compressed import error: %v", err)
+		}
+	}
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -49,6 +70,83 @@ func (fw *FileWatcher) Watch(ctx context.Context) error {
 			}
 		}
 	}
+}
+
+// importCompressedSiblings reads `.gz` files in the same directory whose name
+// starts with the live log's base name (e.g. `access.log.1.gz`).
+func (fw *FileWatcher) importCompressedSiblings(ctx context.Context) error {
+	dir := filepath.Dir(fw.logPath)
+	base := filepath.Base(fw.logPath)
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return fmt.Errorf("read dir %s: %w", dir, err)
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if name == base || !strings.HasPrefix(name, base) || !strings.HasSuffix(name, ".gz") {
+			continue
+		}
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+		full := filepath.Join(dir, name)
+		n, err := fw.importGzip(full)
+		if err != nil {
+			log.Printf("Import gzip %s: %v", full, err)
+			continue
+		}
+		log.Printf("Imported %d records from %s", n, full)
+	}
+	return nil
+}
+
+func (fw *FileWatcher) importGzip(path string) (int, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0, err
+	}
+	defer f.Close()
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		return 0, fmt.Errorf("gzip reader: %w", err)
+	}
+	defer gz.Close()
+	return fw.consumeReader(gz)
+}
+
+// consumeReader reads lines from r and inserts parsed entries in batches.
+func (fw *FileWatcher) consumeReader(r io.Reader) (int, error) {
+	scanner := bufio.NewScanner(r)
+	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
+	var batch []*parser.LogEntry
+	count := 0
+	const batchSize = 1000
+	for scanner.Scan() {
+		entry, err := fw.parser.Parse(scanner.Text())
+		if err != nil {
+			continue
+		}
+		batch = append(batch, entry)
+		if len(batch) >= batchSize {
+			if err := fw.store.InsertBatch(batch, fw.keywords); err != nil {
+				return count, err
+			}
+			count += len(batch)
+			batch = batch[:0]
+		}
+	}
+	if len(batch) > 0 {
+		if err := fw.store.InsertBatch(batch, fw.keywords); err != nil {
+			return count, err
+		}
+		count += len(batch)
+	}
+	return count, scanner.Err()
 }
 
 func (fw *FileWatcher) watchLoop(ctx context.Context) error {
@@ -128,7 +226,7 @@ func (fw *FileWatcher) watchLoop(ctx context.Context) error {
 				// Read new lines
 				var batch []*parser.LogEntry
 				for scanner.Scan() {
-					entry, err := parser.ParseLine(scanner.Text())
+					entry, err := fw.parser.Parse(scanner.Text())
 					if err != nil {
 						continue
 					}
