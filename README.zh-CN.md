@@ -1,8 +1,8 @@
-# Nginx Request Attribution
+# Web Request Attribution
 
 🌐 [English](README.md) | [繁體中文](README.zh-TW.md) | **简体中文** | [日本語](README.ja.md)
 
-一个轻量级的 Nginx 访问日志分析工具，提供统计报表和实时监控功能。
+一个轻量级的 Web 服务器（Nginx / Apache）访问日志分析工具，提供统计报表和实时监控功能，并支持自定义日志格式。
 
 ## 截图预览
 
@@ -27,13 +27,13 @@
 
 ```bash
 # 编译
-go build -o nginx-req-attr ./cmd/
+go build -o web-req-attr ./cmd/
 
 # 导入既有日志
-./nginx-req-attr -import /var/log/nginx/access.log
+./web-req-attr -import /var/log/nginx/access.log
 
 # 启动服务（监控日志 + Web GUI）
-./nginx-req-attr -config config.json
+./web-req-attr -config config.json
 ```
 
 ### 方式二：Docker 部署
@@ -43,12 +43,12 @@ go build -o nginx-req-attr ./cmd/
 docker-compose up -d
 
 # 或手动 Docker
-docker build -t nginx-req-attr .
+docker build -t web-req-attr .
 docker run -d \
   -p 8080:8080 \
   -v /var/log/nginx:/var/log/nginx:ro \
   -v ./data:/app/data \
-  nginx-req-attr
+  web-req-attr
 ```
 
 ## 配置
@@ -57,35 +57,24 @@ docker run -d \
 
 ```json
 {
-  "log_path": "/var/log/nginx/access.log",
-  "log_format": "combined",
   "listen_addr": ":8080",
   "db_path": "./data/stats.db",
   "watch": true,
   "keywords": ["login", "admin", "api", "search"],
-  "input_mode": "file",
-  "syslog_addr": ":1514",
-  "syslog_proto": "udp"
+  "sources": [
+    {
+      "name": "nginx-main",
+      "type": "file",
+      "path": "/var/log/nginx/access.log",
+      "read_compressed": false,
+      "format": { "engine": "nginx", "preset": "combined" }
+    }
+  ]
 }
 ```
 
-| 字段 | 说明 | 默认值 |
-|---|---|---|
-| `log_path` | Nginx 访问日志路径 | `/var/log/nginx/access.log` |
-| `log_format` | 日志格式 (combined/vhost_combined) | `combined` |
-| `listen_addr` | HTTP 服务监听地址 | `:8080` |
-| `db_path` | SQLite 数据库文件路径 | `./data/stats.db` |
-| `watch` | 是否实时监控日志 | `true` |
-| `keywords` | 要追踪的关键词列表 | `[]` |
-| `input_mode` | 输入模式 (`file`/`syslog`/`both`) | `file` |
-| `syslog_addr` | Syslog 监听地址 | `:1514` |
-| `syslog_proto` | Syslog 协议 (`udp`/`tcp`/`both`) | `udp` |
+> 详细的来源字段（`type` / `format.engine` / `format.preset` / `format.pattern` / `read_compressed` 等）以及自定义格式变量列表，请参考英文 [README](README.md#configuration) 与 [`docs/TODO.md`](docs/TODO.md)。已支持 **Nginx**、**Apache**（读取日志文件）、**自定义格式** 与 `.gz` 压缩日志。
 
-### 输入模式
-
-- **`file`** — 使用 fsnotify 事件驱动监控日志文件（默认，高效率，无需修改 nginx 配置）
-- **`syslog`** — 启动 syslog 接收器，通过网络接收 nginx 日志（适合多实例汇聚）
-- **`both`** — 同时使用文件监控和 syslog 接收
 
 #### Syslog 模式配置示例
 
@@ -157,7 +146,7 @@ $host $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_s
 go test ./...
 
 # 编译
-go build -o nginx-req-attr ./cmd/
+go build -o web-req-attr ./cmd/
 ```
 
 ## 许可证

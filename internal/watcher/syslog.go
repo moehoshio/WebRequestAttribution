@@ -8,29 +8,34 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/moehoshio/nginx-request-attribution/internal/parser"
-	"github.com/moehoshio/nginx-request-attribution/internal/storage"
+	"github.com/moehoshio/web-request-attribution/internal/parser"
+	"github.com/moehoshio/web-request-attribution/internal/storage"
 )
 
-// SyslogReceiver listens for syslog messages containing nginx access log lines.
+// SyslogReceiver listens for syslog messages containing access log lines.
 type SyslogReceiver struct {
 	store    *storage.Store
 	addr     string
 	proto    string
 	keywords []string
+	parser   parser.Parser
 }
 
 // NewSyslogReceiver creates a new syslog receiver.
-// proto can be "udp", "tcp", or "both".
-func NewSyslogReceiver(store *storage.Store, addr string, proto string, keywords []string) *SyslogReceiver {
+// proto can be "udp", "tcp", or "both". If p is nil, auto-detection is used.
+func NewSyslogReceiver(store *storage.Store, addr string, proto string, keywords []string, p parser.Parser) *SyslogReceiver {
 	if proto == "" {
 		proto = "udp"
+	}
+	if p == nil {
+		p, _ = parser.New(parser.FormatConfig{Engine: "auto"})
 	}
 	return &SyslogReceiver{
 		store:    store,
 		addr:     addr,
 		proto:    proto,
 		keywords: keywords,
+		parser:   p,
 	}
 }
 
@@ -157,7 +162,7 @@ func (sr *SyslogReceiver) processMessage(message string) {
 		return
 	}
 
-	entry, err := parser.ParseLine(line)
+	entry, err := sr.parser.Parse(line)
 	if err != nil {
 		return
 	}

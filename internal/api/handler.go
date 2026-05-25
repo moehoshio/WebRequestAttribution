@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/moehoshio/nginx-request-attribution/internal/storage"
+	"github.com/moehoshio/web-request-attribution/internal/storage"
 )
 
 type Handler struct {
@@ -20,6 +20,14 @@ func NewHandler(store *storage.Store) *Handler {
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/stats", h.handleStats)
 	mux.HandleFunc("/api/requests", h.handleRequests)
+}
+
+// RegisterRoutesWithMiddleware registers the API routes wrapped with the
+// supplied middleware (e.g. auth.RequireAuth). Use this when the server
+// has authentication enabled.
+func (h *Handler) RegisterRoutesWithMiddleware(mux *http.ServeMux, mw func(http.HandlerFunc) http.HandlerFunc) {
+	mux.HandleFunc("/api/stats", mw(h.handleStats))
+	mux.HandleFunc("/api/requests", mw(h.handleRequests))
 }
 
 func (h *Handler) handleStats(w http.ResponseWriter, r *http.Request) {

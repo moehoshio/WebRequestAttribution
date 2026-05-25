@@ -12,8 +12,8 @@
 ### Setup
 
 ```bash
-git clone https://github.com/moehoshio/nginx-request-attribution.git
-cd nginx-request-attribution
+git clone https://github.com/moehoshio/web-request-attribution.git
+cd web-request-attribution
 go mod download
 ```
 
@@ -36,7 +36,7 @@ go test -v -race ./...
 ### 2. Build
 
 ```bash
-go build -o nginx-req-attr ./cmd/
+go build -o web-req-attr ./cmd/
 ```
 
 ## Writing Tests
@@ -130,5 +130,5 @@ The project is configured with `.github/copilot-setup-steps.yml` to ensure Copil
 1. Create a feature branch from `main`.
 2. Make your changes with corresponding tests.
 3. Ensure all tests pass: `go test ./...`
-4. Ensure the build succeeds: `go build -o nginx-req-attr ./cmd/`
+4. Ensure the build succeeds: `go build -o web-req-attr ./cmd/`
 5. Submit a pull request.

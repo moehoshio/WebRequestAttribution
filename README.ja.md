@@ -1,8 +1,8 @@
-# Nginx Request Attribution
+# Web Request Attribution
 
 🌐 [English](README.md) | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md) | **日本語**
 
-軽量な Nginx アクセスログ分析ツール。統計ダッシュボードとリアルタイム監視機能を提供します。
+軽量な Web サーバー（Nginx / Apache）アクセスログ分析ツール。統計ダッシュボードとリアルタイム監視機能、カスタムログ形式に対応します。
 
 ## スクリーンショット
 
@@ -27,13 +27,13 @@
 
 ```bash
 # ビルド
-go build -o nginx-req-attr ./cmd/
+go build -o web-req-attr ./cmd/
 
 # 既存ログのインポート
-./nginx-req-attr -import /var/log/nginx/access.log
+./web-req-attr -import /var/log/nginx/access.log
 
 # サービス起動（ログ監視 + Web GUI）
-./nginx-req-attr -config config.json
+./web-req-attr -config config.json
 ```
 
 ### 方法2：Docker デプロイ
@@ -43,12 +43,12 @@ go build -o nginx-req-attr ./cmd/
 docker-compose up -d
 
 # または手動 Docker
-docker build -t nginx-req-attr .
+docker build -t web-req-attr .
 docker run -d \
   -p 8080:8080 \
   -v /var/log/nginx:/var/log/nginx:ro \
   -v ./data:/app/data \
-  nginx-req-attr
+  web-req-attr
 ```
 
 ## 設定
@@ -57,35 +57,24 @@ docker run -d \
 
 ```json
 {
-  "log_path": "/var/log/nginx/access.log",
-  "log_format": "combined",
   "listen_addr": ":8080",
   "db_path": "./data/stats.db",
   "watch": true,
   "keywords": ["login", "admin", "api", "search"],
-  "input_mode": "file",
-  "syslog_addr": ":1514",
-  "syslog_proto": "udp"
+  "sources": [
+    {
+      "name": "nginx-main",
+      "type": "file",
+      "path": "/var/log/nginx/access.log",
+      "read_compressed": false,
+      "format": { "engine": "nginx", "preset": "combined" }
+    }
+  ]
 }
 ```
 
-| フィールド | 説明 | デフォルト値 |
-|---|---|---|
-| `log_path` | Nginx アクセスログのパス | `/var/log/nginx/access.log` |
-| `log_format` | ログフォーマット (combined/vhost_combined) | `combined` |
-| `listen_addr` | HTTP サーバーリッスンアドレス | `:8080` |
-| `db_path` | SQLite データベースファイルパス | `./data/stats.db` |
-| `watch` | リアルタイムログ監視の有効化 | `true` |
-| `keywords` | 追跡するキーワードリスト | `[]` |
-| `input_mode` | 入力モード (`file`/`syslog`/`both`) | `file` |
-| `syslog_addr` | Syslog リッスンアドレス | `:1514` |
-| `syslog_proto` | Syslog プロトコル (`udp`/`tcp`/`both`) | `udp` |
+> 詳細なソースフィールド（`type` / `format.engine` / `format.preset` / `format.pattern` / `read_compressed` など）とカスタム形式の変数一覧については、英語版 [README](README.md#configuration) と [`docs/TODO.md`](docs/TODO.md) を参照してください。**Nginx**、**Apache**（ログファイル読み取り）、**カスタム形式**、`.gz` 圧縮ログをサポートしています。
 
-### 入力モード
-
-- **`file`** — fsnotify イベント駆動でログファイルを監視（デフォルト、高効率、nginx 設定変更不要）
-- **`syslog`** — syslog レシーバーを起動し、ネットワーク経由で nginx ログを受信（マルチインスタンス集約に最適）
-- **`both`** — ファイル監視と syslog 受信を同時使用
 
 #### Syslog モード設定例
 
@@ -157,7 +146,7 @@ $host $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_s
 go test ./...
 
 # ビルド
-go build -o nginx-req-attr ./cmd/
+go build -o web-req-attr ./cmd/
 ```
 
 ## ライセンス
