@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/moehoshio/web-request-attribution/internal/parser"
-	"github.com/moehoshio/web-request-attribution/internal/storage"
+	"github.com/moehoshio/WebRequestAttribution/internal/parser"
+	"github.com/moehoshio/WebRequestAttribution/internal/storage"
 )
 
 // SyslogReceiver listens for syslog messages containing access log lines.

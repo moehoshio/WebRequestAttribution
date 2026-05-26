@@ -25,7 +25,7 @@
 
 ### 方法1：Release からダウンロード
 
-[最新の GitHub Release](https://github.com/moehoshio/web-request-attribution/releases/latest) から、利用するプラットフォーム向けのビルド済みバイナリをダウンロードしてください：
+[最新の GitHub Release](https://github.com/moehoshio/WebRequestAttribution/releases/latest) から、利用するプラットフォーム向けのビルド済みバイナリをダウンロードしてください：
 
 | プラットフォーム | アセット |
 |---|---|

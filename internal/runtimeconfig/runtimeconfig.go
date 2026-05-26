@@ -20,7 +20,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/moehoshio/web-request-attribution/internal/parser"
+	"github.com/moehoshio/WebRequestAttribution/internal/parser"
 )
 
 // SourceType identifies the kind of log source. Duplicated from the

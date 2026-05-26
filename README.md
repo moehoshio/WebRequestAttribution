@@ -25,7 +25,7 @@ A lightweight web server (Nginx / Apache) access log analytics tool with statist
 
 ### Option 1: Download from Release
 
-Download the prebuilt binary for your platform from the [latest GitHub Release](https://github.com/moehoshio/web-request-attribution/releases/latest):
+Download the prebuilt binary for your platform from the [latest GitHub Release](https://github.com/moehoshio/WebRequestAttribution/releases/latest):
 
 | Platform | Asset |
 |---|---|
