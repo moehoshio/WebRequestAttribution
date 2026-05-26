@@ -12,8 +12,8 @@
 ### Setup
 
 ```bash
-git clone https://github.com/moehoshio/web-request-attribution.git
-cd web-request-attribution
+git clone https://github.com/moehoshio/WebRequestAttribution.git
+cd WebRequestAttribution
 go mod download
 ```
 

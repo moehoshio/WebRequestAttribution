@@ -16,12 +16,12 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/moehoshio/web-request-attribution/internal/api"
-	"github.com/moehoshio/web-request-attribution/internal/auth"
-	"github.com/moehoshio/web-request-attribution/internal/parser"
-	"github.com/moehoshio/web-request-attribution/internal/runtimeconfig"
-	"github.com/moehoshio/web-request-attribution/internal/storage"
-	"github.com/moehoshio/web-request-attribution/internal/watcher"
+	"github.com/moehoshio/WebRequestAttribution/internal/api"
+	"github.com/moehoshio/WebRequestAttribution/internal/auth"
+	"github.com/moehoshio/WebRequestAttribution/internal/parser"
+	"github.com/moehoshio/WebRequestAttribution/internal/runtimeconfig"
+	"github.com/moehoshio/WebRequestAttribution/internal/storage"
+	"github.com/moehoshio/WebRequestAttribution/internal/watcher"
 
 	"context"
 )

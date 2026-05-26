@@ -11,8 +11,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/moehoshio/web-request-attribution/internal/auth"
-	"github.com/moehoshio/web-request-attribution/internal/runtimeconfig"
+	"github.com/moehoshio/WebRequestAttribution/internal/auth"
+	"github.com/moehoshio/WebRequestAttribution/internal/runtimeconfig"
 )
 
 // ConfigHandler exposes the runtime configuration on /api/config and

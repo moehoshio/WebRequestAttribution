@@ -17,13 +17,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/moehoshio/web-request-attribution/internal/api"
-	"github.com/moehoshio/web-request-attribution/internal/auth"
-	"github.com/moehoshio/web-request-attribution/internal/config"
-	"github.com/moehoshio/web-request-attribution/internal/parser"
-	"github.com/moehoshio/web-request-attribution/internal/runtimeconfig"
-	"github.com/moehoshio/web-request-attribution/internal/storage"
-	"github.com/moehoshio/web-request-attribution/internal/watcher"
+	"github.com/moehoshio/WebRequestAttribution/internal/api"
+	"github.com/moehoshio/WebRequestAttribution/internal/auth"
+	"github.com/moehoshio/WebRequestAttribution/internal/config"
+	"github.com/moehoshio/WebRequestAttribution/internal/parser"
+	"github.com/moehoshio/WebRequestAttribution/internal/runtimeconfig"
+	"github.com/moehoshio/WebRequestAttribution/internal/storage"
+	"github.com/moehoshio/WebRequestAttribution/internal/watcher"
 )
 
 //go:embed all:static

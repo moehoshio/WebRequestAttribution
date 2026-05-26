@@ -25,7 +25,7 @@
 
 ### 方式一：從 Release 下載
 
-從 [最新 GitHub Release](https://github.com/moehoshio/web-request-attribution/releases/latest) 下載符合平台的預先編譯二進位檔：
+從 [最新 GitHub Release](https://github.com/moehoshio/WebRequestAttribution/releases/latest) 下載符合平台的預先編譯二進位檔：
 
 | 平台 | 檔案 |
 |---|---|

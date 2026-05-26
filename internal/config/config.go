@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/moehoshio/web-request-attribution/internal/parser"
-	"github.com/moehoshio/web-request-attribution/internal/runtimeconfig"
+	"github.com/moehoshio/WebRequestAttribution/internal/parser"
+	"github.com/moehoshio/WebRequestAttribution/internal/runtimeconfig"
 )
 
 // SourceType identifies the kind of log source.

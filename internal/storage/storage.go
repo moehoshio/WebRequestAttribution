@@ -10,7 +10,7 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/moehoshio/web-request-attribution/internal/parser"
+	"github.com/moehoshio/WebRequestAttribution/internal/parser"
 )
 
 type Store struct {

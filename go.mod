@@ -1,4 +1,4 @@
-module github.com/moehoshio/web-request-attribution
+module github.com/moehoshio/WebRequestAttribution
 
 go 1.24.13
 

@@ -9,9 +9,9 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/moehoshio/web-request-attribution/internal/parser"
-	"github.com/moehoshio/web-request-attribution/internal/runtimeconfig"
-	"github.com/moehoshio/web-request-attribution/internal/storage"
+	"github.com/moehoshio/WebRequestAttribution/internal/parser"
+	"github.com/moehoshio/WebRequestAttribution/internal/runtimeconfig"
+	"github.com/moehoshio/WebRequestAttribution/internal/storage"
 )
 
 const sampleLine = `127.0.0.1 - - [10/Oct/2000:13:55:36 -0700] "GET /index.html HTTP/1.0" 200 2326 "-" "Mozilla/5.0"`

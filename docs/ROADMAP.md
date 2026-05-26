@@ -17,7 +17,7 @@ next"; smaller deferred items live in [`TODO.md`](./TODO.md).
 ## Phase 1 — Rename + parser refactor (shipped)
 
 - Module path `github.com/moehoshio/nginx-request-attribution` →
-  `github.com/moehoshio/web-request-attribution`; binary `nginx-req-attr`
+  `github.com/moehoshio/WebRequestAttribution`; binary `nginx-req-attr`
   → `web-req-attr`; Dockerfile / `docker-compose.yml` / `deploy.sh` /
   four README translations updated.
 - New `Parser` interface in `internal/parser` with `nginx`, `apache`,
