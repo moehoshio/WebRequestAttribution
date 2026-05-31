@@ -16,10 +16,12 @@ A lightweight web server (Nginx / Apache) access log analytics tool with statist
 - 📊 **Built-in Web GUI** - Statistics dashboard embedded in the binary, no separate frontend deployment required
 - 🔍 **Multi-dimensional Filtering** - Filter by IP, path, domain, query parameters, OS, browser, status code, etc.
 - 🔑 **Keyword Tracking** - Automatically track occurrences of configured keywords
+- 🗺️ **IP Geolocation & World Map** - Resolve request origins to a country (free, no API key) and plot them on an offline world map
 - 📡 **Real-time Monitoring** - Automatically monitor new log file entries
+- 🔐 **Flexible Accounts** - Run open in no-account mode, or require login; missing passwords are auto-generated and printed to the log
 - 🐳 **One-click Deploy** - Docker / Docker Compose deployment support
 - 💾 **SQLite Storage** - Lightweight database, no external database service required
-- 🌐 **Multilingual Interface** - Web GUI supports English, Traditional Chinese, and Japanese
+- 🌐 **Multilingual Interface** - Web GUI supports English, Traditional Chinese, Simplified Chinese, and Japanese
 
 ## Quick Start
 
@@ -77,7 +79,10 @@ the **Settings** tab in the UI without touching a terminal.
 Until the first user account is created the dashboard runs in
 **no-account mode**: anyone reaching the UI can administer the server.
 Create your first user from the **Users** tab (or seed one via
-`auth.bootstrap_admin`) to require login.
+`auth.bootstrap_admin`) to require login. To force login from the start,
+set `auth.require_account: true`; if no account exists at launch a random
+admin password is generated and printed to the server log so you can sign
+in once and change it.
 
 Example `config.json`:
 
@@ -117,6 +122,7 @@ Example `config.json`:
 | `keywords` | List of keywords to track | `[]` |
 | `sources` | List of log sources to ingest from (see below) | `[]` |
 | `auth` | Account-system settings (see [Authentication](#authentication)) | – |
+| `geo` | IP geolocation / world-map settings (see [Geolocation](#geolocation)) | – |
 
 ### Authentication
 
@@ -127,9 +133,31 @@ ignored and can be removed. Sessions are HttpOnly cookies; non-GET API
 calls also require the `X-CSRF-Token` header (the dashboard JS handles
 this automatically via a double-submit cookie). Set `cookie_secure: true`
 when serving over HTTPS. Additional accounts can be created from the
-**Users** tab once you are signed in as an admin.
+**Account mode.** Setting `auth.require_account: true` makes login
+mandatory even before any user exists. When the server starts in this
+mode with an empty `users` table and no usable `bootstrap_admin`
+password, it creates an `admin` account with a random password and prints
+the credentials to the server log (look for the boxed banner). This keeps
+the dashboard from ever being reachable anonymously while still letting
+you bootstrap without hand-editing the database.
 
-### Source fields
+### Geolocation
+
+The **World map** tab plots the approximate origin of incoming requests.
+Origins are resolved in the background to a country (and region where the
+provider has it) using the free [ip-api.com](https://ip-api.com) service —
+no API key required — and cached in SQLite so each IP is only looked up
+once. Private, loopback and reserved addresses are never sent upstream.
+Resolution is best-effort: when the host has no outbound network the rest
+of the dashboard keeps working and the map simply shows what has already
+been resolved.
+
+| Field | Description | Default |
+|---|---|---|
+| `geo.enabled` | Enable background IP geolocation (also toggleable from the **Settings** tab) | `true` |
+| `geo.endpoint` | Override the provider URL template (`{ip}` is substituted) | ip-api.com |
+
+
 
 Each entry in `sources` describes one input. Common fields:
 
@@ -254,6 +282,24 @@ Get request list (paginated). Additional parameters:
 |---|---|
 | `limit` | Results per page (default 100) |
 | `offset` | Offset |
+
+Each row also includes `country` and `country_code` when the IP has been
+geolocated.
+
+### GET /api/geo
+
+Returns per-country request counts with a representative coordinate for
+the world map. Honours the same filters as `/api/stats`.
+
+**Response Example:**
+```json
+{
+  "countries": [
+    {"country_code": "US", "country": "United States", "lat": 37.4, "lon": -122.0, "count": 2}
+  ],
+  "total": 2
+}
+```
 
 ## Supported Log Formats
 

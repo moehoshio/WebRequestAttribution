@@ -87,8 +87,147 @@ func (s *Store) migrate() error {
 			fingerprint BLOB NOT NULL DEFAULT x'',
 			updated_at DATETIME NOT NULL
 		);
+
+		-- geo_cache stores a best-effort geolocation per client IP so the
+		-- world map and country breakdown can be rendered without
+		-- re-querying the upstream geo provider on every page load. The
+		-- data is intentionally coarse (country, optional region) and is
+		-- refreshed lazily by the background resolver. status is one of
+		-- "ok" (resolved), "fail" (provider could not resolve it), or
+		-- "private" (loopback / RFC1918 / reserved — never sent upstream).
+		CREATE TABLE IF NOT EXISTS geo_cache (
+			ip TEXT PRIMARY KEY,
+			country_code TEXT,
+			country TEXT,
+			region TEXT,
+			city TEXT,
+			lat REAL,
+			lon REAL,
+			status TEXT NOT NULL DEFAULT 'ok',
+			updated_at DATETIME NOT NULL
+		);
+		CREATE INDEX IF NOT EXISTS idx_geo_cache_country ON geo_cache(country_code);
 	`)
 	return err
+}
+
+// GeoEntry is a single cached geolocation record keyed by IP. Lat/Lon
+// are only meaningful when Status == "ok".
+type GeoEntry struct {
+	IP          string  `json:"ip"`
+	CountryCode string  `json:"country_code"`
+	Country     string  `json:"country"`
+	Region      string  `json:"region"`
+	City        string  `json:"city"`
+	Lat         float64 `json:"lat"`
+	Lon         float64 `json:"lon"`
+	Status      string  `json:"status"`
+}
+
+// GetGeo returns the cached geolocation for ip, or ok=false when none
+// has been resolved yet.
+func (s *Store) GetGeo(ip string) (GeoEntry, bool, error) {
+	var g GeoEntry
+	err := s.db.QueryRow(
+		`SELECT ip, country_code, country, region, city, lat, lon, status FROM geo_cache WHERE ip = ?`,
+		ip,
+	).Scan(&g.IP, &g.CountryCode, &g.Country, &g.Region, &g.City, &g.Lat, &g.Lon, &g.Status)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return GeoEntry{}, false, nil
+		}
+		return GeoEntry{}, false, err
+	}
+	return g, true, nil
+}
+
+// UpsertGeo writes (or overwrites) the cache row for g.IP.
+func (s *Store) UpsertGeo(g GeoEntry) error {
+	if g.Status == "" {
+		g.Status = "ok"
+	}
+	_, err := s.db.Exec(
+		`INSERT INTO geo_cache (ip, country_code, country, region, city, lat, lon, status, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		 ON CONFLICT(ip) DO UPDATE SET
+		   country_code = excluded.country_code,
+		   country = excluded.country,
+		   region = excluded.region,
+		   city = excluded.city,
+		   lat = excluded.lat,
+		   lon = excluded.lon,
+		   status = excluded.status,
+		   updated_at = excluded.updated_at`,
+		g.IP, g.CountryCode, g.Country, g.Region, g.City, g.Lat, g.Lon, g.Status, time.Now().UTC(),
+	)
+	return err
+}
+
+// DistinctUnresolvedIPs returns up to limit client IPs that appear in
+// the requests table but have no geo_cache row yet, most frequent
+// first. The background resolver uses this to decide what to look up.
+func (s *Store) DistinctUnresolvedIPs(limit int) ([]string, error) {
+	if limit <= 0 {
+		limit = 40
+	}
+	rows, err := s.db.Query(
+		`SELECT r.ip, COUNT(*) AS c FROM requests r
+		 LEFT JOIN geo_cache g ON r.ip = g.ip
+		 WHERE g.ip IS NULL AND r.ip <> ''
+		 GROUP BY r.ip ORDER BY c DESC LIMIT ?`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var ips []string
+	for rows.Next() {
+		var ip string
+		var c int
+		if err := rows.Scan(&ip, &c); err != nil {
+			return nil, err
+		}
+		ips = append(ips, ip)
+	}
+	return ips, rows.Err()
+}
+
+// GeoCountItem aggregates request counts per country together with a
+// representative coordinate (the mean of the resolved IPs' positions)
+// so the frontend can place a single marker per country on the map.
+type GeoCountItem struct {
+	CountryCode string  `json:"country_code"`
+	Country     string  `json:"country"`
+	Lat         float64 `json:"lat"`
+	Lon         float64 `json:"lon"`
+	Count       int     `json:"count"`
+}
+
+// GeoAggregate returns per-country request counts for requests whose IP
+// has been resolved to a real location (status = "ok"), honouring the
+// same filters as Query/Stats.
+func (s *Store) GeoAggregate(f QueryFilter) ([]GeoCountItem, error) {
+	where, args := buildWhere(f, "r.")
+	clause := "WHERE g.status = 'ok'"
+	if where != "" {
+		clause = where + " AND g.status = 'ok'"
+	}
+	query := `SELECT g.country_code, MAX(g.country), AVG(g.lat), AVG(g.lon), COUNT(*) AS c
+		FROM requests r JOIN geo_cache g ON r.ip = g.ip ` + clause +
+		` GROUP BY g.country_code ORDER BY c DESC`
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GeoCountItem
+	for rows.Next() {
+		var it GeoCountItem
+		if err := rows.Scan(&it.CountryCode, &it.Country, &it.Lat, &it.Lon, &it.Count); err != nil {
+			return nil, err
+		}
+		items = append(items, it)
+	}
+	return items, rows.Err()
 }
 
 // FileState records per-file ingestion progress for the directory
@@ -261,6 +400,10 @@ type RequestRow struct {
 	Domain    string    `json:"domain"`
 	OS        string    `json:"os"`
 	Browser   string    `json:"browser"`
+	// Country / CountryCode are populated from geo_cache via a LEFT JOIN
+	// when a geolocation has been resolved for the IP; empty otherwise.
+	Country     string `json:"country"`
+	CountryCode string `json:"country_code"`
 }
 
 type QueryResult struct {
@@ -269,7 +412,7 @@ type QueryResult struct {
 }
 
 func (s *Store) Query(f QueryFilter) (*QueryResult, error) {
-	where, args := buildWhere(f)
+	where, args := buildWhere(f, "")
 
 	// Count
 	var total int
@@ -283,10 +426,16 @@ func (s *Store) Query(f QueryFilter) (*QueryResult, error) {
 		limit = 100
 	}
 
-	querySQL := "SELECT id, ip, timestamp, method, path, query, protocol, status, body_size, referer, user_agent, domain, os, browser FROM requests" + where + " ORDER BY timestamp DESC LIMIT ? OFFSET ?"
-	args = append(args, limit, f.Offset)
+	// The row query joins geo_cache so each request can carry its
+	// resolved country. Columns are qualified with the "r." prefix to
+	// avoid ambiguity with geo_cache's own ip column.
+	rowWhere, rowArgs := buildWhere(f, "r.")
+	querySQL := `SELECT r.id, r.ip, r.timestamp, r.method, r.path, r.query, r.protocol, r.status, r.body_size, r.referer, r.user_agent, r.domain, r.os, r.browser,
+		COALESCE(g.country, ''), COALESCE(g.country_code, '')
+		FROM requests r LEFT JOIN geo_cache g ON r.ip = g.ip` + rowWhere + " ORDER BY r.timestamp DESC LIMIT ? OFFSET ?"
+	rowArgs = append(rowArgs, limit, f.Offset)
 
-	rows, err := s.db.Query(querySQL, args...)
+	rows, err := s.db.Query(querySQL, rowArgs...)
 	if err != nil {
 		return nil, err
 	}
@@ -295,7 +444,7 @@ func (s *Store) Query(f QueryFilter) (*QueryResult, error) {
 	var results []RequestRow
 	for rows.Next() {
 		var r RequestRow
-		if err := rows.Scan(&r.ID, &r.IP, &r.Timestamp, &r.Method, &r.Path, &r.Query, &r.Protocol, &r.Status, &r.BodySize, &r.Referer, &r.UserAgent, &r.Domain, &r.OS, &r.Browser); err != nil {
+		if err := rows.Scan(&r.ID, &r.IP, &r.Timestamp, &r.Method, &r.Path, &r.Query, &r.Protocol, &r.Status, &r.BodySize, &r.Referer, &r.UserAgent, &r.Domain, &r.OS, &r.Browser, &r.Country, &r.CountryCode); err != nil {
 			return nil, err
 		}
 		results = append(results, r)
@@ -328,7 +477,7 @@ type TimeCountItem struct {
 }
 
 func (s *Store) Stats(f QueryFilter) (*StatsResult, error) {
-	where, args := buildWhere(f)
+	where, args := buildWhere(f, "")
 	result := &StatsResult{}
 
 	// Total requests
@@ -402,48 +551,48 @@ func (s *Store) requestsPerDay(where string, args []interface{}) []TimeCountItem
 	return items
 }
 
-func buildWhere(f QueryFilter) (string, []interface{}) {
+func buildWhere(f QueryFilter, prefix string) (string, []interface{}) {
 	var conditions []string
 	var args []interface{}
 
 	if f.StartTime != nil {
-		conditions = append(conditions, "timestamp >= ?")
+		conditions = append(conditions, prefix+"timestamp >= ?")
 		args = append(args, *f.StartTime)
 	}
 	if f.EndTime != nil {
-		conditions = append(conditions, "timestamp <= ?")
+		conditions = append(conditions, prefix+"timestamp <= ?")
 		args = append(args, *f.EndTime)
 	}
 	if f.IP != "" {
-		conditions = append(conditions, "ip LIKE ?")
+		conditions = append(conditions, prefix+"ip LIKE ?")
 		args = append(args, "%"+f.IP+"%")
 	}
 	if f.Path != "" {
-		conditions = append(conditions, "path LIKE ?")
+		conditions = append(conditions, prefix+"path LIKE ?")
 		args = append(args, "%"+f.Path+"%")
 	}
 	if f.Domain != "" {
-		conditions = append(conditions, "domain LIKE ?")
+		conditions = append(conditions, prefix+"domain LIKE ?")
 		args = append(args, "%"+f.Domain+"%")
 	}
 	if f.Method != "" {
-		conditions = append(conditions, "method = ?")
+		conditions = append(conditions, prefix+"method = ?")
 		args = append(args, f.Method)
 	}
 	if f.Status > 0 {
-		conditions = append(conditions, "status = ?")
+		conditions = append(conditions, prefix+"status = ?")
 		args = append(args, f.Status)
 	}
 	if f.OS != "" {
-		conditions = append(conditions, "os = ?")
+		conditions = append(conditions, prefix+"os = ?")
 		args = append(args, f.OS)
 	}
 	if f.Browser != "" {
-		conditions = append(conditions, "browser = ?")
+		conditions = append(conditions, prefix+"browser = ?")
 		args = append(args, f.Browser)
 	}
 	if f.Query != "" {
-		conditions = append(conditions, "query LIKE ?")
+		conditions = append(conditions, prefix+"query LIKE ?")
 		args = append(args, "%"+f.Query+"%")
 	}
 

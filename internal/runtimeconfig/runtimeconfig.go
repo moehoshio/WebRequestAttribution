@@ -74,15 +74,20 @@ type Runtime struct {
 	Watch    bool     `json:"watch"`
 	Keywords []string `json:"keywords"`
 	Sources  []Source `json:"sources"`
+	// GeoEnabled toggles background IP geolocation for the world map.
+	// It defaults to true when seeded from a config file that does not
+	// explicitly disable it (see config.RuntimeSeed).
+	GeoEnabled bool `json:"geo_enabled"`
 }
 
 // Clone returns a deep copy of r so subscribers can mutate the value
 // without racing the store.
 func (r Runtime) Clone() Runtime {
 	out := Runtime{
-		Watch:    r.Watch,
-		Keywords: append([]string(nil), r.Keywords...),
-		Sources:  append([]Source(nil), r.Sources...),
+		Watch:      r.Watch,
+		Keywords:   append([]string(nil), r.Keywords...),
+		Sources:    append([]Source(nil), r.Sources...),
+		GeoEnabled: r.GeoEnabled,
 	}
 	return out
 }

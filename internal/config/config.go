@@ -69,6 +69,9 @@ type Config struct {
 	// Auth contains bootstrap settings for the account system. See
 	// docs/ROADMAP.md (Phase 2).
 	Auth AuthConfig `json:"auth"`
+	// Geo contains settings for IP geolocation (the world map). See
+	// internal/geo.
+	Geo GeoConfig `json:"geo"`
 
 	// --- runtime seed values (only used when the runtime_config row
 	// is empty, i.e. first launch). ---
@@ -88,12 +91,40 @@ type AuthConfig struct {
 	// the bootstrap; otherwise the operator must create the first user
 	// out-of-band (e.g. by inserting into SQLite directly).
 	BootstrapAdmin *BootstrapAdmin `json:"bootstrap_admin,omitempty"`
+	// RequireAccount opts into "account mode": the dashboard must be
+	// gated behind a login. When this is true but no usable account
+	// exists yet (no users in the database and no bootstrap_admin
+	// password supplied), the server creates an "admin" account with a
+	// randomly-generated password and prints it to the backend log so
+	// the operator can sign in. The default (false) keeps the
+	// friendlier no-account mode where the first visitor configures the
+	// server and creates the first account from the UI.
+	RequireAccount bool `json:"require_account,omitempty"`
 	// BcryptCost overrides the bcrypt cost parameter. 0 → default (10).
 	BcryptCost int `json:"bcrypt_cost,omitempty"`
 	// SessionTTLHours overrides the session lifetime. 0 → 24 hours.
 	SessionTTLHours int `json:"session_ttl_hours,omitempty"`
 	// CookieSecure issues cookies with the Secure attribute (HTTPS only).
 	CookieSecure bool `json:"cookie_secure,omitempty"`
+}
+
+// GeoConfig holds settings for the background IP geolocation resolver.
+type GeoConfig struct {
+	// Enabled is a pointer so "absent" can be distinguished from
+	// "explicitly false". When nil the feature defaults to on. The live
+	// value is stored in the runtime config and editable from the
+	// settings panel; this only seeds the first launch.
+	Enabled *bool `json:"enabled,omitempty"`
+	// Endpoint overrides the geolocation provider URL template. The
+	// "{ip}" placeholder is substituted with the address being looked
+	// up. Empty uses geo.DefaultEndpoint.
+	Endpoint string `json:"endpoint,omitempty"`
+}
+
+// GeoEnabled reports whether geolocation should be seeded as enabled.
+// Absent (nil) defaults to true.
+func (g GeoConfig) GeoEnabled() bool {
+	return g.Enabled == nil || *g.Enabled
 }
 
 // BootstrapAdmin describes the initial admin account created on first
@@ -224,8 +255,9 @@ func (c *Config) RuntimeSeed() runtimeconfig.Runtime {
 		c.Keywords = []string{}
 	}
 	return runtimeconfig.Runtime{
-		Watch:    c.Watch,
-		Keywords: append([]string(nil), c.Keywords...),
-		Sources:  srcs,
+		Watch:      c.Watch,
+		Keywords:   append([]string(nil), c.Keywords...),
+		Sources:    srcs,
+		GeoEnabled: c.Geo.GeoEnabled(),
 	}
 }

@@ -20,6 +20,7 @@ func NewHandler(store *storage.Store) *Handler {
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/stats", h.handleStats)
 	mux.HandleFunc("/api/requests", h.handleRequests)
+	mux.HandleFunc("/api/geo", h.handleGeo)
 }
 
 // RegisterRoutesWithMiddleware registers the API routes wrapped with the
@@ -28,6 +29,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 func (h *Handler) RegisterRoutesWithMiddleware(mux *http.ServeMux, mw func(http.HandlerFunc) http.HandlerFunc) {
 	mux.HandleFunc("/api/stats", mw(h.handleStats))
 	mux.HandleFunc("/api/requests", mw(h.handleRequests))
+	mux.HandleFunc("/api/geo", mw(h.handleGeo))
 }
 
 func (h *Handler) handleStats(w http.ResponseWriter, r *http.Request) {
@@ -60,6 +62,34 @@ func (h *Handler) handleRequests(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, result)
+}
+
+// handleGeo returns per-country request counts for the world map. Only
+// requests whose IP has been geolocated (status "ok") are included; the
+// same filters as /api/stats apply.
+func (h *Handler) handleGeo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	f := parseFilter(r)
+	countries, err := h.store.GeoAggregate(f)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if countries == nil {
+		countries = []storage.GeoCountItem{}
+	}
+	total := 0
+	for _, c := range countries {
+		total += c.Count
+	}
+	writeJSON(w, map[string]interface{}{
+		"countries": countries,
+		"total":     total,
+	})
 }
 
 func parseFilter(r *http.Request) storage.QueryFilter {
