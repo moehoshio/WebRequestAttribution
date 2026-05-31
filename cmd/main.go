@@ -170,13 +170,17 @@ func main() {
 			if _, err := authSvc.CreateUser(username, password, auth.RoleAdmin); err != nil {
 				log.Fatalf("Failed to create admin account: %v", err)
 			}
-			log.Printf("================================================================")
-			log.Printf("Account mode is enabled but no account was configured.")
-			log.Printf("A random admin account has been generated:")
-			log.Printf("    username: %s", username)
-			log.Printf("    password: %s", password)
-			log.Printf("Sign in with these credentials and change the password.")
-			log.Printf("================================================================")
+			// Print the freshly generated, not-yet-used credential to
+			// the process's standard output rather than through the
+			// logging subsystem, so it is shown to the operator once on
+			// the console without being persisted into aggregated logs.
+			fmt.Fprintln(os.Stdout, "================================================================")
+			fmt.Fprintln(os.Stdout, "Account mode is enabled but no account was configured.")
+			fmt.Fprintln(os.Stdout, "A random admin account has been generated:")
+			fmt.Fprintf(os.Stdout, "    username: %s\n", username)
+			fmt.Fprintf(os.Stdout, "    password: %s\n", password)
+			fmt.Fprintln(os.Stdout, "Sign in with these credentials and change the password.")
+			fmt.Fprintln(os.Stdout, "================================================================")
 		}
 	} else {
 		// Operators who skip bootstrap_admin should know the server
