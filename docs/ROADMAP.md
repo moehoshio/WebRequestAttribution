@@ -13,6 +13,7 @@ next"; smaller deferred items live in [`TODO.md`](./TODO.md).
 | 3 | Settings panel + one-click restart | ✅ done |
 | 4 | Directory watcher (recursive scan, rotation tracking) | ✅ done |
 | 5 | Documentation / screenshots / integration tests | ✅ done |
+| 6 | IP geolocation + world map, account mode, UI polish | ✅ done |
 
 ## Phase 1 — Rename + parser refactor (shipped)
 
@@ -118,6 +119,34 @@ source that handles rotation correctly.
   today, Apache `%`-tokens once `TODO.md` items are addressed).
 - An integration test that boots the server in-process, ingests a
   fixture log, logs in, hits the dashboard API, and edits a setting.
+
+## Phase 6 — IP geolocation + world map, account mode, UI polish
+
+Goal: visualise where requests come from and make every operation
+reachable from the UI without editing `config.json`.
+
+- **Geolocation** (`internal/geo`): a background resolver looks up
+  un-geolocated request IPs against the free `ip-api.com` provider
+  (no API key), rate-limited and cached in a new `geo_cache` SQLite
+  table. Private / loopback / reserved addresses are classified locally
+  and never sent upstream; the loop is offline-graceful (no network →
+  no progress, the rest of the dashboard is unaffected). The provider
+  endpoint is a bootstrap field; the on/off toggle is runtime-tunable
+  (`geo_enabled`) from the Settings tab.
+- **World map**: a new dashboard tab renders an offline equirectangular
+  bubble map (hand-built inline SVG, no CDN assets) with one marker per
+  country sized by request volume, plus a "Top Countries" chart and a
+  `country` column in the requests table. Backed by `GET /api/geo`
+  (per-country counts + representative coordinate, same filters as
+  `/api/stats`).
+- **Account mode**: no-account mode stays the default. Setting
+  `auth.require_account: true` forces login from the first launch; if no
+  account exists and no bootstrap password is usable, an `admin` account
+  is created with a random password printed to the server log.
+- **Tests**: `internal/geo` (local classification, batch resolve with an
+  httptest provider, offline back-off) and storage geo helpers
+  (`UpsertGeo`/`GetGeo`/`DistinctUnresolvedIPs`/`GeoAggregate`, country
+  JOIN in `Query`).
 
 ## Risks / notes
 

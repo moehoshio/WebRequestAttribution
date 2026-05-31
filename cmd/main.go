@@ -4,7 +4,9 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
+	"crypto/rand"
 	"embed"
+	"encoding/base64"
 	"flag"
 	"fmt"
 	"io"
@@ -20,6 +22,7 @@ import (
 	"github.com/moehoshio/WebRequestAttribution/internal/api"
 	"github.com/moehoshio/WebRequestAttribution/internal/auth"
 	"github.com/moehoshio/WebRequestAttribution/internal/config"
+	"github.com/moehoshio/WebRequestAttribution/internal/geo"
 	"github.com/moehoshio/WebRequestAttribution/internal/parser"
 	"github.com/moehoshio/WebRequestAttribution/internal/runtimeconfig"
 	"github.com/moehoshio/WebRequestAttribution/internal/storage"
@@ -114,6 +117,19 @@ func main() {
 		}
 	})
 
+	// Background IP geolocation resolver powers the world map. It runs
+	// off the same SQLite store, resolving un-located IPs lazily and
+	// caching the (coarse) result. The enabled flag is part of the
+	// runtime config so it can be toggled from the settings panel.
+	geoResolver := geo.New(store, geo.Options{
+		Endpoint: cfg.Geo.Endpoint,
+		Enabled:  rcStore.Get().GeoEnabled,
+	})
+	rcStore.Subscribe(func(rc runtimeconfig.Runtime) {
+		geoResolver.SetEnabled(rc.GeoEnabled)
+	})
+	go geoResolver.Run(ctx)
+
 	// Setup HTTP server
 	mux := http.NewServeMux()
 
@@ -135,6 +151,36 @@ func main() {
 		}
 		if created {
 			log.Printf("Bootstrap admin user %q created", ba.Username)
+		}
+	} else if cfg.Auth.RequireAccount {
+		// Account mode was requested (e.g. by editing the config file)
+		// but no usable credentials were supplied. Rather than locking
+		// the operator out, mint an admin account with a random
+		// password and print it to the backend log so they can sign in
+		// and then change it.
+		if n, _ := authSvc.CountUsers(); n == 0 {
+			username := "admin"
+			if cfg.Auth.BootstrapAdmin != nil && cfg.Auth.BootstrapAdmin.Username != "" {
+				username = cfg.Auth.BootstrapAdmin.Username
+			}
+			password, err := randomPassword()
+			if err != nil {
+				log.Fatalf("Failed to generate admin password: %v", err)
+			}
+			if _, err := authSvc.CreateUser(username, password, auth.RoleAdmin); err != nil {
+				log.Fatalf("Failed to create admin account: %v", err)
+			}
+			// Print the freshly generated, not-yet-used credential to
+			// the process's standard output rather than through the
+			// logging subsystem, so it is shown to the operator once on
+			// the console without being persisted into aggregated logs.
+			fmt.Fprintln(os.Stdout, "================================================================")
+			fmt.Fprintln(os.Stdout, "Account mode is enabled but no account was configured.")
+			fmt.Fprintln(os.Stdout, "A random admin account has been generated:")
+			fmt.Fprintf(os.Stdout, "    username: %s\n", username)
+			fmt.Fprintf(os.Stdout, "    password: %s\n", password)
+			fmt.Fprintln(os.Stdout, "Sign in with these credentials and change the password.")
+			fmt.Fprintln(os.Stdout, "================================================================")
 		}
 	} else {
 		// Operators who skip bootstrap_admin should know the server
@@ -234,4 +280,15 @@ func importLogFile(store *storage.Store, path string, keywords []string, p parse
 	}
 
 	return count, scanner.Err()
+}
+
+// randomPassword returns a URL-safe random password used when account
+// mode is enabled without a configured admin password. The bytes come
+// from crypto/rand so the credential is unpredictable.
+func randomPassword() (string, error) {
+	b := make([]byte, 18)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return base64.RawURLEncoding.EncodeToString(b), nil
 }
