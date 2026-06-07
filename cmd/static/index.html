@@ -416,7 +416,10 @@
         }
 
         .bar-label {
-            min-width: 130px;
+            /* Fixed width (not min-width) so every bar track starts at the
+               same x position regardless of how long the label text is. */
+            flex: 0 0 130px;
+            width: 130px;
             font-size: 13px;
             font-weight: 500;
             text-align: right;
@@ -455,6 +458,97 @@
         .bar-fill.grad-5 { background: linear-gradient(135deg, #ec4899, #8b5cf6); }
         .bar-fill.grad-6 { background: linear-gradient(135deg, #14b8a6, #a3e635); }
         .bar-fill.grad-7 { background: linear-gradient(135deg, #f97316, #eab308); }
+
+        /* Chart view switcher (bars / donut / trend) */
+        .chart-toolbar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+        .chart-view-switch {
+            display: inline-flex;
+            gap: 4px;
+            padding: 4px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+        }
+        .chart-view-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+        .chart-view-btn:hover { color: var(--text-primary); }
+        .chart-view-btn.active {
+            color: #fff;
+            background: var(--gradient-1);
+        }
+
+        /* Donut (circular percentage) charts */
+        .donut-chart {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+            flex-wrap: wrap;
+        }
+        .donut-svg { flex: 0 0 auto; }
+        .donut-center-value {
+            font-size: 22px;
+            font-weight: 700;
+            fill: var(--text-primary);
+        }
+        .donut-center-label {
+            font-size: 9px;
+            fill: var(--text-secondary);
+        }
+        .donut-legend {
+            flex: 1;
+            min-width: 160px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .donut-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .donut-dot {
+            flex: 0 0 auto;
+            width: 11px;
+            height: 11px;
+            border-radius: 3px;
+        }
+        .donut-legend-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .donut-legend-pct {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Trend (requests over time) chart */
+        .trend-box { grid-column: 1 / -1; }
+        .trend-svg { width: 100%; height: auto; display: block; }
+        .trend-area { opacity: 0.18; }
+        .trend-line { fill: none; stroke-width: 2.5; }
+        .trend-dot { transition: r 0.15s; }
+        .trend-grid-line { stroke: var(--border); stroke-width: 1; }
+        .trend-axis-label { font-size: 10px; fill: var(--text-secondary); }
 
         /* Table */
         table {
@@ -941,6 +1035,13 @@
         </div>
 
         <div id="tab-overview" class="panel">
+            <div class="chart-toolbar">
+                <div class="chart-view-switch" role="tablist">
+                    <button type="button" class="chart-view-btn" data-view="bars" onclick="setChartView('bars')"><span aria-hidden="true">📊</span> <span data-i18n="view_bars"></span></button>
+                    <button type="button" class="chart-view-btn" data-view="donut" onclick="setChartView('donut')"><span aria-hidden="true">🍩</span> <span data-i18n="view_donut"></span></button>
+                    <button type="button" class="chart-view-btn" data-view="trend" onclick="setChartView('trend')"><span aria-hidden="true">📈</span> <span data-i18n="view_trend"></span></button>
+                </div>
+            </div>
             <div class="chart-container" id="charts"></div>
         </div>
 
@@ -1154,6 +1255,11 @@
                 chart_browsers: '瀏覽器',
                 chart_status_codes: '狀態碼',
                 chart_keywords: '關鍵詞',
+                chart_trend: '每日請求趨勢',
+                view_bars: '條形圖',
+                view_donut: '圓圈百分比',
+                view_trend: '趨勢圖',
+                donut_others: '其他',
                 no_data: '暫無數據',
                 page_info: '第 {current} 頁 / 共 {total} 頁 ({count} 條)',
                 ip: 'IP',
@@ -1281,6 +1387,11 @@
                 chart_browsers: 'Browsers',
                 chart_status_codes: 'Status Codes',
                 chart_keywords: 'Keywords',
+                chart_trend: 'Daily Request Trend',
+                view_bars: 'Bars',
+                view_donut: 'Donut',
+                view_trend: 'Trend',
+                donut_others: 'Others',
                 no_data: 'No data',
                 page_info: 'Page {current} / {total} ({count} items)',
                 ip: 'IP',
@@ -1408,6 +1519,11 @@
                 chart_browsers: '浏览器',
                 chart_status_codes: '状态码',
                 chart_keywords: '关键词',
+                chart_trend: '每日请求趋势',
+                view_bars: '条形图',
+                view_donut: '圆圈百分比',
+                view_trend: '趋势图',
+                donut_others: '其他',
                 no_data: '暂无数据',
                 page_info: '第 {current} 页 / 共 {total} 页 ({count} 条)',
                 ip: 'IP',
@@ -1535,6 +1651,11 @@
                 chart_browsers: 'ブラウザー',
                 chart_status_codes: 'ステータスコード',
                 chart_keywords: 'キーワード',
+                chart_trend: '日次リクエスト推移',
+                view_bars: '棒グラフ',
+                view_donut: '円グラフ',
+                view_trend: '推移グラフ',
+                donut_others: 'その他',
                 no_data: 'データなし',
                 page_info: '{current} / {total} ページ ({count} 件)',
                 ip: 'IP',
@@ -1665,6 +1786,11 @@
         let lastGeoData = null;
         let lastRequestRows = null;
         const gradients = ['grad-1', 'grad-2', 'grad-3', 'grad-4', 'grad-5', 'grad-6', 'grad-7'];
+        // Solid colours used for SVG fills (donut slices, trend line) where CSS
+        // gradient classes can't be applied directly.
+        const chartColors = ['#6366f1', '#8b5cf6', '#ec4899', '#f97316', '#eab308', '#14b8a6', '#06b6d4', '#3b82f6', '#a3e635', '#f43f5e'];
+        // Active overview chart style: 'bars' | 'donut' | 'trend'.
+        let chartViewMode = localStorage.getItem('chartView') || 'bars';
 
         const savedTheme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
@@ -1725,6 +1851,7 @@
             });
             const switcher = document.getElementById('languageSwitcher');
             if (switcher) switcher.value = currentLang;
+            updateChartViewButtons();
             if (lastStatsData) {
                 renderStatsCards(lastStatsData);
                 renderCharts(lastStatsData);
@@ -1852,20 +1979,154 @@
             return div.innerHTML;
         }
 
+        // setChartView switches the overview between display styles (bar chart,
+        // donut/percentage, time trend) and re-renders using the cached stats.
+        function setChartView(mode) {
+            chartViewMode = (mode === 'donut' || mode === 'trend') ? mode : 'bars';
+            localStorage.setItem('chartView', chartViewMode);
+            updateChartViewButtons();
+            if (lastStatsData) renderCharts(lastStatsData);
+        }
+
+        function updateChartViewButtons() {
+            document.querySelectorAll('.chart-view-btn').forEach(function(btn) {
+                btn.classList.toggle('active', btn.dataset.view === chartViewMode);
+            });
+        }
+
         function renderCharts(data) {
             const container = document.getElementById('charts');
             const countryItems = lastGeoData && lastGeoData.countries
                 ? lastGeoData.countries.map(function(c) { return { name: c.country || c.country_code || t('geo_unknown'), count: c.count }; })
                 : [];
+            updateChartViewButtons();
+
+            if (chartViewMode === 'trend') {
+                container.innerHTML = renderTrendChart('📈', 'chart_trend', data.requests_per_day);
+                return;
+            }
+
+            const render = chartViewMode === 'donut' ? renderDonutChart : renderBarChart;
             container.innerHTML =
-                renderBarChart('🛤️', 'top_paths', data.top_paths, 0) +
-                renderBarChart('🌐', 'top_ips', data.top_ips, 1) +
-                renderBarChart('🗺️', 'chart_countries', countryItems, 2) +
-                renderBarChart('🏷️', 'chart_domains', data.top_domains, 3) +
-                renderBarChart('💻', 'chart_os', data.top_os, 4) +
-                renderBarChart('🌍', 'chart_browsers', data.top_browsers, 5) +
-                renderBarChart('📊', 'chart_status_codes', data.status_codes, 6) +
-                renderBarChart('🔑', 'chart_keywords', data.top_keywords, 0);
+                render('🛤️', 'top_paths', data.top_paths, 0) +
+                render('🌐', 'top_ips', data.top_ips, 1) +
+                render('🗺️', 'chart_countries', countryItems, 2) +
+                render('🏷️', 'chart_domains', data.top_domains, 3) +
+                render('💻', 'chart_os', data.top_os, 4) +
+                render('🌍', 'chart_browsers', data.top_browsers, 5) +
+                render('📊', 'chart_status_codes', data.status_codes, 6) +
+                render('🔑', 'chart_keywords', data.top_keywords, 0);
+        }
+
+        function chartEmptyState(title) {
+            return '<div class="chart-box"><h3>' + title + '</h3><div class="empty-state"><div class="icon">📭</div><p>' + t('no_data') + '</p></div></div>';
+        }
+
+        // renderDonutChart draws a ring (circular percentage) chart for the top
+        // items. The largest slices are shown individually; the long tail is
+        // collapsed into an "Others" slice so the ring stays readable.
+        function renderDonutChart(icon, titleKey, items, gradIdx) {
+            const title = icon + ' ' + t(titleKey);
+            if (!items || items.length === 0) return chartEmptyState(title);
+
+            const top = items.slice(0, 6).map(function(it) {
+                return { name: it.name || t('empty_value'), count: it.count };
+            });
+            const shownTotal = top.reduce(function(s, it) { return s + it.count; }, 0);
+            const grandTotal = items.reduce(function(s, it) { return s + it.count; }, 0);
+            if (grandTotal > shownTotal) {
+                top.push({ name: t('donut_others'), count: grandTotal - shownTotal });
+            }
+            const total = grandTotal || 1;
+
+            // Geometry: a stroke-dasharray ring on a circle of radius r.
+            const size = 132, cx = 66, cy = 66, r = 52, circ = 2 * Math.PI * r;
+            let offset = 0;
+            const segments = top.map(function(it, i) {
+                const frac = it.count / total;
+                const color = chartColors[(gradIdx + i) % chartColors.length];
+                const dash = (frac * circ).toFixed(2) + ' ' + (circ - frac * circ).toFixed(2);
+                const seg = '<circle cx="' + cx + '" cy="' + cy + '" r="' + r +
+                    '" fill="none" stroke="' + color + '" stroke-width="16"' +
+                    ' stroke-dasharray="' + dash + '"' +
+                    ' stroke-dashoffset="' + (-offset).toFixed(2) + '"' +
+                    ' transform="rotate(-90 ' + cx + ' ' + cy + ')"></circle>';
+                offset += frac * circ;
+                return seg;
+            }).join('');
+
+            const topPct = Math.round((top[0].count / total) * 100);
+            const svg = '<svg class="donut-svg" width="' + size + '" height="' + size +
+                '" viewBox="0 0 ' + size + ' ' + size + '" role="img">' +
+                '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="var(--bg-secondary)" stroke-width="16"></circle>' +
+                segments +
+                '<text x="' + cx + '" y="' + (cy - 2) + '" text-anchor="middle" class="donut-center-value">' + topPct + '%</text>' +
+                '<text x="' + cx + '" y="' + (cy + 14) + '" text-anchor="middle" class="donut-center-label">' + escapeHtml(top[0].name.slice(0, 14)) + '</text>' +
+                '</svg>';
+
+            const legend = top.map(function(it, i) {
+                const color = chartColors[(gradIdx + i) % chartColors.length];
+                const pct = Math.round((it.count / total) * 100);
+                return '<div class="donut-legend-item">' +
+                    '<span class="donut-dot" style="background:' + color + '"></span>' +
+                    '<span class="donut-legend-name" title="' + escapeHtml(it.name) + '">' + escapeHtml(it.name) + '</span>' +
+                    '<span class="donut-legend-pct">' + pct + '% · ' + it.count.toLocaleString(currentLang) + '</span>' +
+                    '</div>';
+            }).join('');
+
+            return '<div class="chart-box"><h3>' + title + '</h3><div class="donut-chart">' + svg +
+                '<div class="donut-legend">' + legend + '</div></div></div>';
+        }
+
+        // renderTrendChart draws a full-width area/line chart of requests over
+        // time using the requests_per_day series returned by the stats API.
+        function renderTrendChart(icon, titleKey, series) {
+            const title = icon + ' ' + t(titleKey);
+            if (!series || series.length === 0) {
+                return '<div class="chart-box trend-box"><h3>' + title + '</h3><div class="empty-state"><div class="icon">📭</div><p>' + t('no_data') + '</p></div></div>';
+            }
+
+            const pts = series.slice();
+            const W = 900, H = 280, padL = 48, padR = 20, padT = 20, padB = 36;
+            const plotW = W - padL - padR, plotH = H - padT - padB;
+            const maxCount = pts.reduce(function(m, p) { return Math.max(m, p.count); }, 0) || 1;
+            const n = pts.length;
+            const x = function(i) { return padL + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW); };
+            const y = function(c) { return padT + plotH - (c / maxCount) * plotH; };
+
+            // Horizontal grid lines + y-axis labels (5 steps).
+            let grid = '';
+            const steps = 4;
+            for (let s = 0; s <= steps; s++) {
+                const val = Math.round((maxCount / steps) * s);
+                const gy = (padT + plotH - (s / steps) * plotH).toFixed(1);
+                grid += '<line class="trend-grid-line" x1="' + padL + '" y1="' + gy + '" x2="' + (W - padR) + '" y2="' + gy + '"></line>' +
+                    '<text class="trend-axis-label" x="' + (padL - 8) + '" y="' + (parseFloat(gy) + 3) + '" text-anchor="end">' + val.toLocaleString(currentLang) + '</text>';
+            }
+
+            const linePts = pts.map(function(p, i) { return x(i).toFixed(1) + ',' + y(p.count).toFixed(1); }).join(' ');
+            const areaPts = x(0).toFixed(1) + ',' + (padT + plotH).toFixed(1) + ' ' + linePts + ' ' + x(n - 1).toFixed(1) + ',' + (padT + plotH).toFixed(1);
+            const color = chartColors[0];
+
+            const dots = pts.map(function(p, i) {
+                return '<circle class="trend-dot" cx="' + x(i).toFixed(1) + '" cy="' + y(p.count).toFixed(1) + '" r="3" fill="' + color + '"><title>' + escapeHtml(p.date) + ': ' + p.count.toLocaleString(currentLang) + '</title></circle>';
+            }).join('');
+
+            // X-axis labels: show at most ~8 evenly spaced dates to avoid clutter.
+            const labelEvery = Math.max(1, Math.ceil(n / 8));
+            let xLabels = '';
+            for (let i = 0; i < n; i += labelEvery) {
+                xLabels += '<text class="trend-axis-label" x="' + x(i).toFixed(1) + '" y="' + (H - padB + 18) + '" text-anchor="middle">' + escapeHtml(pts[i].date) + '</text>';
+            }
+
+            const svg = '<svg class="trend-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img">' +
+                grid +
+                '<polygon class="trend-area" points="' + areaPts + '" fill="' + color + '"></polygon>' +
+                '<polyline class="trend-line" points="' + linePts + '" stroke="' + color + '"></polyline>' +
+                dots + xLabels +
+                '</svg>';
+
+            return '<div class="chart-box trend-box"><h3>' + title + '</h3>' + svg + '</div>';
         }
 
         function getStatusClass(status) {
