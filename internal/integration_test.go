@@ -15,7 +15,7 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 	"github.com/moehoshio/WebRequestAttribution/internal/api"
 	"github.com/moehoshio/WebRequestAttribution/internal/auth"
 	"github.com/moehoshio/WebRequestAttribution/internal/parser"

@@ -7,7 +7,8 @@ echo "=== Web Request Attribution - One-Click Deploy ==="
 # Check if Go is installed
 if command -v go &> /dev/null; then
     echo "✅ Go found, building from source..."
-    go build -ldflags="-s -w" -o web-req-attr ./cmd/
+    # Pure-Go SQLite means CGO can stay off for a fully static binary.
+    CGO_ENABLED=0 go build -ldflags="-s -w" -o web-req-attr ./cmd/
     echo "✅ Built successfully: ./web-req-attr"
 elif command -v docker &> /dev/null; then
     echo "✅ Docker found, building container..."

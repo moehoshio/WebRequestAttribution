@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 	"github.com/moehoshio/WebRequestAttribution/internal/parser"
 	"github.com/moehoshio/WebRequestAttribution/internal/runtimeconfig"
 	"github.com/moehoshio/WebRequestAttribution/internal/storage"
