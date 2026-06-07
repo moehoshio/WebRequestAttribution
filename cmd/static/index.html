@@ -619,6 +619,192 @@
         .map-legend .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg-secondary); font-size: 13px; }
         .map-legend .chip b { color: var(--accent-hover); }
         .hidden { display: none !important; }
+
+        /* ===== Settings panel (modern, unified) ===== */
+        .settings-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 22px 24px;
+            margin-bottom: 20px;
+        }
+        .settings-section .section-head {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 4px;
+        }
+        .settings-section .section-head .ico { font-size: 18px; }
+        .settings-section h3 { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+        .settings-section .section-hint {
+            font-size: 13px; color: var(--text-secondary); margin: 2px 0 18px;
+        }
+        .settings-section h3.bare { margin-bottom: 16px; }
+
+        /* Read-only bootstrap info as definition rows */
+        .info-grid { display: flex; flex-direction: column; gap: 1px; }
+        .info-grid .info-row {
+            display: grid; grid-template-columns: 240px 1fr; gap: 16px;
+            padding: 12px 14px; align-items: center;
+            border-radius: var(--radius-sm);
+        }
+        .info-grid .info-row:nth-child(odd) { background: var(--bg-card); }
+        .info-grid .info-key { font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+        .info-grid .info-val {
+            font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+            font-size: 13px; color: var(--text-primary); word-break: break-all;
+        }
+
+        /* Generic field layout used across settings */
+        .field { display: flex; flex-direction: column; gap: 6px; }
+        .field > label {
+            font-size: 12px; font-weight: 600; color: var(--text-secondary);
+            letter-spacing: 0.3px;
+        }
+        .settings-section input[type="text"],
+        .settings-section select {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            outline: none;
+            width: 100%;
+        }
+        .settings-section input[type="text"]:focus,
+        .settings-section select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .settings-section input[type="text"]::placeholder { color: var(--text-muted); }
+
+        .runtime-grid {
+            display: grid; grid-template-columns: 220px 1fr; gap: 18px 20px;
+            align-items: center;
+        }
+        .runtime-grid > label {
+            font-size: 13px; font-weight: 600; color: var(--text-secondary);
+        }
+
+        /* Modern toggle switch */
+        .switch { position: relative; display: inline-flex; align-items: center; gap: 12px; cursor: pointer; }
+        .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .switch .track {
+            width: 42px; height: 24px; border-radius: 999px;
+            background: var(--bg-card-hover); border: 1px solid var(--border);
+            transition: background 0.2s ease; flex-shrink: 0; position: relative;
+        }
+        .switch .track::after {
+            content: ''; position: absolute; top: 2px; left: 2px;
+            width: 18px; height: 18px; border-radius: 50%;
+            background: var(--text-muted); transition: transform 0.2s ease, background 0.2s ease;
+        }
+        .switch input:checked + .track { background: var(--accent); border-color: var(--accent); }
+        .switch input:checked + .track::after { transform: translateX(18px); background: #fff; }
+        .switch input:focus-visible + .track { box-shadow: 0 0 0 3px var(--accent-glow); }
+        .switch .switch-text { font-size: 13px; color: var(--text-secondary); }
+
+        /* Source cards */
+        .source-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px 18px;
+            margin-bottom: 14px;
+        }
+        .source-card .source-card-head {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; margin-bottom: 16px;
+        }
+        .source-card .source-type-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 12px; border-radius: 999px;
+            background: var(--accent-glow); color: var(--accent-hover);
+            font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .source-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px; align-items: end;
+        }
+        .source-grid .span-2 { grid-column: span 2; }
+        .source-grid .inline-check {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 13px; color: var(--text-secondary); padding-bottom: 10px;
+        }
+        .source-grid .inline-check input { width: 16px; height: 16px; accent-color: var(--accent); }
+
+        /* Path input with an attached Browse button */
+        .input-with-btn { display: flex; gap: 8px; }
+        .input-with-btn input { flex: 1; }
+        .btn-browse {
+            flex-shrink: 0; padding: 0 14px; border-radius: var(--radius-sm);
+            border: 1px solid var(--border); background: var(--bg-secondary);
+            color: var(--text-secondary); cursor: pointer; font-size: 14px;
+            display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;
+        }
+        .btn-browse:hover { background: var(--bg-card-hover); color: var(--text-primary); border-color: var(--accent); }
+
+        .btn-icon-danger {
+            padding: 8px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+            background: transparent; color: var(--danger); cursor: pointer; font-size: 13px;
+            font-weight: 600; transition: all 0.2s ease;
+        }
+        .btn-icon-danger:hover { background: rgba(239, 68, 68, 0.12); border-color: var(--danger); }
+
+        .add-source-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+
+        /* ===== Modal / file picker ===== */
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 1100;
+            background: rgba(2, 6, 23, 0.6); backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+            animation: fadeIn 0.15s ease;
+        }
+        .modal {
+            background: var(--bg-secondary); border: 1px solid var(--border);
+            border-radius: var(--radius); box-shadow: var(--shadow-lg);
+            width: 100%; max-width: 640px; max-height: 80vh; display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+        .modal-head {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            padding: 18px 22px; border-bottom: 1px solid var(--border);
+        }
+        .modal-head h3 { font-size: 16px; font-weight: 600; }
+        .modal-close {
+            background: transparent; border: none; color: var(--text-muted); cursor: pointer;
+            font-size: 22px; line-height: 1; padding: 0 4px; transition: color 0.2s ease;
+        }
+        .modal-close:hover { color: var(--text-primary); }
+        .modal-path {
+            padding: 10px 22px; font-family: ui-monospace, Menlo, Consolas, monospace;
+            font-size: 13px; color: var(--text-secondary); background: var(--bg-primary);
+            border-bottom: 1px solid var(--border); word-break: break-all;
+        }
+        .modal-body { overflow-y: auto; flex: 1; padding: 8px 0; }
+        .browse-item {
+            display: flex; align-items: center; gap: 12px; padding: 11px 22px;
+            cursor: pointer; transition: background 0.12s ease; font-size: 14px;
+            color: var(--text-primary); border: none; background: transparent; width: 100%; text-align: left;
+        }
+        .browse-item:hover { background: var(--bg-card-hover); }
+        .browse-item .b-ico { font-size: 16px; width: 20px; text-align: center; }
+        .browse-item .b-name { flex: 1; word-break: break-all; }
+        .browse-item .b-size { font-size: 12px; color: var(--text-muted); }
+        .browse-item.is-up { color: var(--text-secondary); }
+        .browse-empty { padding: 28px 22px; text-align: center; color: var(--text-muted); font-size: 14px; }
+        .modal-foot {
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            padding: 16px 22px; border-top: 1px solid var(--border); flex-wrap: wrap;
+        }
+        .modal-foot .foot-hint { font-size: 12px; color: var(--text-muted); }
+        .modal-foot .foot-actions { display: flex; gap: 10px; margin-left: auto; }
+        .modal-error { color: var(--danger); font-size: 13px; padding: 0 22px 12px; }
+
+        @media (max-width: 640px) {
+            .runtime-grid { grid-template-columns: 1fr; gap: 8px 0; }
+            .info-grid .info-row { grid-template-columns: 1fr; gap: 4px; }
+            .source-grid .span-2 { grid-column: span 1; }
+        }
     </style>
 </head>
 <body>
@@ -838,49 +1024,75 @@
             </div>
         </div>
 
-        <div id="tab-settings" class="panel" style="display:none;">
+        <div id="tab-settings" class="panel settings-panel" style="display:none;">
             <div id="settingsError" class="error" style="color: var(--danger); min-height: 18px; margin-bottom: 12px;"></div>
             <div id="settingsStatus" style="min-height: 18px; margin-bottom: 12px; color: var(--success);"></div>
 
-            <h3 style="margin: 0 0 12px;" data-i18n="settings_bootstrap_title"></h3>
-            <p class="subtitle" data-i18n="settings_bootstrap_hint"></p>
-            <table class="users-table" style="margin-bottom: 24px;">
-                <tbody>
-                    <tr><th style="width:240px;" data-i18n="settings_listen_addr"></th><td id="bootstrapListenAddr"></td></tr>
-                    <tr><th data-i18n="settings_db_path"></th><td id="bootstrapDBPath"></td></tr>
-                    <tr><th data-i18n="settings_allowed_log_roots"></th><td id="bootstrapAllowedRoots"></td></tr>
-                </tbody>
-            </table>
-
-            <h3 style="margin: 0 0 12px;" data-i18n="settings_runtime_title"></h3>
-
-            <div class="users-form" style="grid-template-columns: 200px 1fr;">
-                <label data-i18n="settings_watch"></label>
-                <div>
-                    <input type="checkbox" id="settingsWatch">
-                    <span class="subtitle" data-i18n="settings_watch_hint"></span>
+            <div class="settings-section">
+                <div class="section-head"><span class="ico" aria-hidden="true">🚀</span><h3 data-i18n="settings_bootstrap_title"></h3></div>
+                <p class="section-hint" data-i18n="settings_bootstrap_hint"></p>
+                <div class="info-grid">
+                    <div class="info-row"><span class="info-key" data-i18n="settings_listen_addr"></span><span class="info-val" id="bootstrapListenAddr"></span></div>
+                    <div class="info-row"><span class="info-key" data-i18n="settings_db_path"></span><span class="info-val" id="bootstrapDBPath"></span></div>
+                    <div class="info-row"><span class="info-key" data-i18n="settings_allowed_log_roots"></span><span class="info-val" id="bootstrapAllowedRoots"></span></div>
                 </div>
-                <label data-i18n="settings_geo"></label>
-                <div>
-                    <input type="checkbox" id="settingsGeo">
-                    <span class="subtitle" data-i18n="settings_geo_hint"></span>
-                </div>
-                <label data-i18n="settings_keywords"></label>
-                <input type="text" id="settingsKeywords" data-i18n-placeholder="settings_keywords_placeholder">
             </div>
 
-            <h4 style="margin: 24px 0 12px;" data-i18n="settings_sources"></h4>
-            <div id="settingsSources"></div>
-            <div style="margin-top: 12px;">
-                <button class="btn btn-secondary" onclick="addSourceRow('file')" data-i18n="settings_add_file"></button>
-                <button class="btn btn-secondary" onclick="addSourceRow('dir')" data-i18n="settings_add_dir"></button>
-                <button class="btn btn-secondary" onclick="addSourceRow('syslog')" data-i18n="settings_add_syslog"></button>
+            <div class="settings-section">
+                <div class="section-head"><span class="ico" aria-hidden="true">⚡</span><h3 data-i18n="settings_runtime_title"></h3></div>
+                <div class="runtime-grid">
+                    <label data-i18n="settings_watch"></label>
+                    <label class="switch">
+                        <input type="checkbox" id="settingsWatch">
+                        <span class="track"></span>
+                        <span class="switch-text" data-i18n="settings_watch_hint"></span>
+                    </label>
+                    <label data-i18n="settings_geo"></label>
+                    <label class="switch">
+                        <input type="checkbox" id="settingsGeo">
+                        <span class="track"></span>
+                        <span class="switch-text" data-i18n="settings_geo_hint"></span>
+                    </label>
+                    <label data-i18n="settings_keywords"></label>
+                    <input type="text" id="settingsKeywords" data-i18n-placeholder="settings_keywords_placeholder">
+                </div>
             </div>
 
-            <div style="margin-top: 24px; display: flex; gap: 10px; flex-wrap: wrap;">
-                <button class="btn btn-primary" onclick="saveSettings()" data-i18n="settings_save"></button>
+            <div class="settings-section">
+                <div class="section-head"><span class="ico" aria-hidden="true">📥</span><h3 data-i18n="settings_sources"></h3></div>
+                <p class="section-hint" data-i18n="settings_sources_hint"></p>
+                <div id="settingsSources"></div>
+                <div class="add-source-bar">
+                    <button class="btn btn-secondary" onclick="addSourceRow('file')"><span aria-hidden="true">📄</span> <span data-i18n="settings_add_file"></span></button>
+                    <button class="btn btn-secondary" onclick="addSourceRow('dir')"><span aria-hidden="true">📁</span> <span data-i18n="settings_add_dir"></span></button>
+                    <button class="btn btn-secondary" onclick="addSourceRow('syslog')"><span aria-hidden="true">🛰️</span> <span data-i18n="settings_add_syslog"></span></button>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="saveSettings()"><span aria-hidden="true">💾</span> <span data-i18n="settings_save"></span></button>
                 <button class="btn btn-secondary" onclick="loadSettings()" data-i18n="settings_reload"></button>
                 <button class="btn btn-secondary" onclick="confirmRestart()" data-i18n="settings_restart"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visual path picker (log file / folder selection) -->
+    <div id="pathPicker" class="modal-overlay hidden">
+        <div class="modal" role="dialog" aria-modal="true">
+            <div class="modal-head">
+                <h3 id="pickerTitle" data-i18n="picker_title"></h3>
+                <button class="modal-close" onclick="closePicker()" aria-label="close">&times;</button>
+            </div>
+            <div class="modal-path" id="pickerPath"></div>
+            <div class="modal-error hidden" id="pickerError"></div>
+            <div class="modal-body" id="pickerList"></div>
+            <div class="modal-foot">
+                <span class="foot-hint" id="pickerHint"></span>
+                <div class="foot-actions">
+                    <button class="btn btn-secondary" onclick="closePicker()" data-i18n="picker_cancel"></button>
+                    <button class="btn btn-primary hidden" id="pickerSelectDir" onclick="pickerChooseCurrent()" data-i18n="picker_select_folder"></button>
+                </div>
             </div>
         </div>
     </div>
@@ -986,6 +1198,17 @@
                 settings_pattern_glob: '檔名匹配 (glob)',
                 settings_recursive: '遞迴搜尋子資料夾',
                 settings_remove: '移除',
+                settings_sources_hint: '設定要讀取的日誌檔案、資料夾或 Syslog 來源。',
+                settings_browse: '瀏覽…',
+                picker_title: '選擇路徑',
+                picker_title_file: '選擇日誌檔案',
+                picker_title_folder: '選擇日誌資料夾',
+                picker_roots: '允許的日誌根路徑',
+                picker_empty: '此資料夾為空',
+                picker_cancel: '取消',
+                picker_select_folder: '選擇此資料夾',
+                picker_hint_file: '點擊檔案即可選取。',
+                picker_hint_folder: '進入目標資料夾後點擊「選擇此資料夾」。',
                 settings_save: '儲存',
                 settings_reload: '重新載入',
                 settings_restart: '重新啟動伺服器',
@@ -1102,6 +1325,17 @@
                 settings_pattern_glob: 'Filename glob',
                 settings_recursive: 'Recurse into subdirectories',
                 settings_remove: 'Remove',
+                settings_sources_hint: 'Configure the log files, folders, or syslog endpoints to ingest.',
+                settings_browse: 'Browse…',
+                picker_title: 'Choose path',
+                picker_title_file: 'Choose log file',
+                picker_title_folder: 'Choose log folder',
+                picker_roots: 'Allowed log roots',
+                picker_empty: 'This folder is empty',
+                picker_cancel: 'Cancel',
+                picker_select_folder: 'Select this folder',
+                picker_hint_file: 'Click a file to select it.',
+                picker_hint_folder: 'Navigate into a folder, then click “Select this folder”.',
                 settings_save: 'Save',
                 settings_reload: 'Reload',
                 settings_restart: 'Restart server',
@@ -1218,6 +1452,17 @@
                 settings_pattern_glob: '文件名匹配 (glob)',
                 settings_recursive: '递归搜索子目录',
                 settings_remove: '移除',
+                settings_sources_hint: '配置要读取的日志文件、文件夹或 Syslog 来源。',
+                settings_browse: '浏览…',
+                picker_title: '选择路径',
+                picker_title_file: '选择日志文件',
+                picker_title_folder: '选择日志文件夹',
+                picker_roots: '允许的日志根路径',
+                picker_empty: '此文件夹为空',
+                picker_cancel: '取消',
+                picker_select_folder: '选择此文件夹',
+                picker_hint_file: '点击文件即可选取。',
+                picker_hint_folder: '进入目标文件夹后点击“选择此文件夹”。',
                 settings_save: '保存',
                 settings_reload: '重新加载',
                 settings_restart: '重启服务器',
@@ -1334,6 +1579,17 @@
                 settings_pattern_glob: 'ファイル名 glob',
                 settings_recursive: 'サブディレクトリも再帰探索',
                 settings_remove: '削除',
+                settings_sources_hint: '読み込むログファイル・フォルダ・Syslog ソースを設定します。',
+                settings_browse: '参照…',
+                picker_title: 'パスを選択',
+                picker_title_file: 'ログファイルを選択',
+                picker_title_folder: 'ログフォルダを選択',
+                picker_roots: '許可されたログルート',
+                picker_empty: 'このフォルダは空です',
+                picker_cancel: 'キャンセル',
+                picker_select_folder: 'このフォルダを選択',
+                picker_hint_file: 'ファイルをクリックして選択します。',
+                picker_hint_folder: '目的のフォルダに移動して「このフォルダを選択」をクリックします。',
                 settings_save: '保存',
                 settings_reload: '再読み込み',
                 settings_restart: 'サーバー再起動',
@@ -2119,36 +2375,47 @@
                 const isDir = s.type === 'dir';
                 const isSyslog = s.type === 'syslog';
                 const isCustom = s.format && s.format.engine === 'custom';
+                // Path field with an attached visual Browse button. The
+                // picker mode (file vs dir) follows the source type.
+                const pathField = function(mode) {
+                    return '<div class="field span-2"><label data-i18n="settings_path"></label>' +
+                        '<div class="input-with-btn">' +
+                        '<input type="text" data-field="path" value="' + escapeAttr(s.path || '') + '">' +
+                        '<button type="button" class="btn-browse" onclick="openPicker(' + i + ',\'' + mode + '\')"><span aria-hidden="true">📂</span> <span data-i18n="settings_browse"></span></button>' +
+                        '</div></div>';
+                };
                 let typeBlock;
                 if (isFile) {
                     typeBlock =
-                        '<div style="grid-column:span 2;"><label data-i18n="settings_path"></label><input type="text" data-field="path" value="' + escapeAttr(s.path || '') + '"></div>' +
-                        '<div><label><input type="checkbox" data-field="read_compressed"' + (s.read_compressed ? ' checked' : '') + '> <span data-i18n="settings_read_compressed"></span></label></div>';
+                        pathField('file') +
+                        '<div class="field"><label class="inline-check"><input type="checkbox" data-field="read_compressed"' + (s.read_compressed ? ' checked' : '') + '> <span data-i18n="settings_read_compressed"></span></label></div>';
                 } else if (isDir) {
                     typeBlock =
-                        '<div style="grid-column:span 2;"><label data-i18n="settings_path"></label><input type="text" data-field="path" value="' + escapeAttr(s.path || '') + '"></div>' +
-                        '<div><label data-i18n="settings_pattern_glob"></label><input type="text" data-field="pattern_glob" value="' + escapeAttr(s.pattern || '') + '"></div>' +
-                        '<div><label><input type="checkbox" data-field="recursive"' + (s.recursive ? ' checked' : '') + '> <span data-i18n="settings_recursive"></span></label></div>' +
-                        '<div><label><input type="checkbox" data-field="read_compressed"' + (s.read_compressed ? ' checked' : '') + '> <span data-i18n="settings_read_compressed"></span></label></div>';
+                        pathField('dir') +
+                        '<div class="field"><label data-i18n="settings_pattern_glob"></label><input type="text" data-field="pattern_glob" value="' + escapeAttr(s.pattern || '') + '"></div>' +
+                        '<div class="field"><label class="inline-check"><input type="checkbox" data-field="recursive"' + (s.recursive ? ' checked' : '') + '> <span data-i18n="settings_recursive"></span></label></div>' +
+                        '<div class="field"><label class="inline-check"><input type="checkbox" data-field="read_compressed"' + (s.read_compressed ? ' checked' : '') + '> <span data-i18n="settings_read_compressed"></span></label></div>';
                 } else {
                     typeBlock =
-                        '<div><label data-i18n="settings_addr"></label><input type="text" data-field="addr" value="' + escapeAttr(s.addr || '') + '"></div>' +
-                        '<div><label data-i18n="settings_proto"></label><select data-field="proto">' + protoSelect + '</select></div>';
+                        '<div class="field"><label data-i18n="settings_addr"></label><input type="text" data-field="addr" value="' + escapeAttr(s.addr || '') + '"></div>' +
+                        '<div class="field"><label data-i18n="settings_proto"></label><select data-field="proto">' + protoSelect + '</select></div>';
                 }
-                return '<div class="source-row" data-i="' + i + '" style="border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; margin-bottom:10px;">' +
-                    '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:10px; align-items:end;">' +
-                    '<div><label data-i18n="settings_source_name"></label><input type="text" data-field="name" value="' + escapeAttr(s.name || '') + '"></div>' +
-                    '<div><label data-i18n="settings_source_type"></label><div style="padding:6px;">' + escapeHtml(s.type) + '</div></div>' +
+                return '<div class="source-card" data-i="' + i + '">' +
+                    '<div class="source-card-head">' +
+                    '<span class="source-type-badge">' + escapeHtml(s.type) + '</span>' +
+                    '<button class="btn-icon-danger" onclick="removeSourceRow(' + i + ')"><span aria-hidden="true">🗑</span> <span data-i18n="settings_remove"></span></button>' +
+                    '</div>' +
+                    '<div class="source-grid">' +
+                    '<div class="field"><label data-i18n="settings_source_name"></label><input type="text" data-field="name" value="' + escapeAttr(s.name || '') + '"></div>' +
                     typeBlock +
-                    '<div><label data-i18n="settings_engine"></label><select data-field="engine">' + engineSelect + '</select></div>' +
+                    '<div class="field"><label data-i18n="settings_engine"></label><select data-field="engine">' + engineSelect + '</select></div>' +
                     (isCustom
-                        ? '<div style="grid-column:span 2;"><label data-i18n="settings_pattern"></label><input type="text" data-field="pattern" value="' + escapeAttr(s.format && s.format.pattern || '') + '"></div>'
-                        : '<div><label data-i18n="settings_preset"></label><select data-field="preset">' + presetSelect + '</select></div>') +
-                    '<div><button class="btn btn-secondary" onclick="removeSourceRow(' + i + ')" data-i18n="settings_remove"></button></div>' +
+                        ? '<div class="field span-2"><label data-i18n="settings_pattern"></label><input type="text" data-field="pattern" value="' + escapeAttr(s.format && s.format.pattern || '') + '"></div>'
+                        : '<div class="field"><label data-i18n="settings_preset"></label><select data-field="preset">' + presetSelect + '</select></div>') +
                     '</div></div>';
             }).join('');
             // Wire change listeners so edits flow back into settingsSources.
-            host.querySelectorAll('.source-row').forEach(function(row) {
+            host.querySelectorAll('.source-card').forEach(function(row) {
                 const i = parseInt(row.getAttribute('data-i'), 10);
                 row.querySelectorAll('[data-field]').forEach(function(el) {
                     el.addEventListener('change', function() {
@@ -2174,6 +2441,113 @@
                 });
             });
             applyLanguage();
+        }
+
+        // ===== Visual path picker =====
+        let pickerState = { sourceIndex: -1, mode: 'file', cwd: '' };
+
+        function formatSize(n) {
+            if (!n) return '';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            let i = 0, v = n;
+            while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+            return (i === 0 ? v : v.toFixed(1)) + ' ' + units[i];
+        }
+
+        function openPicker(sourceIndex, mode) {
+            pickerState = { sourceIndex: sourceIndex, mode: mode, cwd: '' };
+            document.getElementById('pathPicker').classList.remove('hidden');
+            document.getElementById('pickerTitle').textContent =
+                mode === 'dir' ? t('picker_title_folder') : t('picker_title_file');
+            // The "select this folder" button only makes sense in dir mode.
+            document.getElementById('pickerSelectDir').classList.toggle('hidden', mode !== 'dir');
+            document.getElementById('pickerHint').textContent =
+                mode === 'dir' ? t('picker_hint_folder') : t('picker_hint_file');
+            // Seed from the current path value so the picker opens near it.
+            const s = settingsSources[sourceIndex];
+            browseTo(s && s.path ? s.path : '');
+        }
+
+        function closePicker() {
+            document.getElementById('pathPicker').classList.add('hidden');
+        }
+
+        async function browseTo(path) {
+            const errEl = document.getElementById('pickerError');
+            errEl.classList.add('hidden');
+            errEl.textContent = '';
+            const listEl = document.getElementById('pickerList');
+            listEl.innerHTML = '<div class="browse-empty">…</div>';
+            let res;
+            try {
+                res = await authFetch('/api/admin/browse?path=' + encodeURIComponent(path || ''));
+            } catch (e) {
+                errEl.textContent = String(e); errEl.classList.remove('hidden');
+                listEl.innerHTML = ''; return;
+            }
+            const data = await res.json().catch(function(){ return {}; });
+            if (!res.ok) {
+                errEl.textContent = data.error || 'browse failed';
+                errEl.classList.remove('hidden');
+                listEl.innerHTML = '';
+                return;
+            }
+            pickerState.cwd = data.path || '';
+            document.getElementById('pickerPath').textContent =
+                data.at_roots ? t('picker_roots') : (data.path || '');
+            // Disable "select this folder" while at the roots screen.
+            const selBtn = document.getElementById('pickerSelectDir');
+            if (pickerState.mode === 'dir') {
+                selBtn.classList.toggle('hidden', !!data.at_roots);
+            }
+            renderBrowseList(data);
+        }
+
+        function renderBrowseList(data) {
+            const listEl = document.getElementById('pickerList');
+            let html = '';
+            if (data.parent !== undefined && data.parent !== '') {
+                html += '<button class="browse-item is-up" data-go="' + escapeAttr(data.parent) + '">' +
+                    '<span class="b-ico" aria-hidden="true">↩</span><span class="b-name">..</span></button>';
+            }
+            const entries = data.entries || [];
+            if (!entries.length && !html) {
+                listEl.innerHTML = '<div class="browse-empty">' + t('picker_empty') + '</div>';
+                return;
+            }
+            entries.forEach(function(e) {
+                if (e.is_dir) {
+                    html += '<button class="browse-item" data-go="' + escapeAttr(e.path) + '">' +
+                        '<span class="b-ico" aria-hidden="true">📁</span>' +
+                        '<span class="b-name">' + escapeHtml(e.name) + '</span></button>';
+                } else {
+                    // Files are only selectable in file mode; in dir mode
+                    // they are shown greyed for context but not clickable.
+                    const selectable = pickerState.mode === 'file';
+                    html += '<button class="browse-item" data-pick="' + escapeAttr(e.path) + '"' +
+                        (selectable ? '' : ' disabled style="opacity:.45;cursor:default;"') + '>' +
+                        '<span class="b-ico" aria-hidden="true">📄</span>' +
+                        '<span class="b-name">' + escapeHtml(e.name) + '</span>' +
+                        '<span class="b-size">' + formatSize(e.size) + '</span></button>';
+                }
+            });
+            listEl.innerHTML = html;
+            listEl.querySelectorAll('[data-go]').forEach(function(el) {
+                el.addEventListener('click', function() { browseTo(el.getAttribute('data-go')); });
+            });
+            listEl.querySelectorAll('[data-pick]').forEach(function(el) {
+                el.addEventListener('click', function() { pickerApply(el.getAttribute('data-pick')); });
+            });
+        }
+
+        function pickerChooseCurrent() {
+            if (pickerState.cwd) pickerApply(pickerState.cwd);
+        }
+
+        function pickerApply(path) {
+            const s = settingsSources[pickerState.sourceIndex];
+            if (s) { s.path = path; renderSourceRows(); }
+            closePicker();
         }
 
         function addSourceRow(type) {

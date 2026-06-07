@@ -1,16 +1,16 @@
-FROM golang:1.22-alpine AS builder
-
-RUN apk add --no-cache gcc musl-dev
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN CGO_ENABLED=1 go build -ldflags="-s -w" -o /app/web-req-attr ./cmd/
+# Pure-Go SQLite (modernc.org/sqlite) means no CGO and no C toolchain:
+# the resulting binary is fully static.
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /app/web-req-attr ./cmd/
 
 FROM alpine:3.19
-RUN apk add --no-cache ca-certificates sqlite-libs
+RUN apk add --no-cache ca-certificates
 WORKDIR /app
 
 COPY --from=builder /app/web-req-attr .

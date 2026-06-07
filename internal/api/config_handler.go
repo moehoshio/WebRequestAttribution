@@ -7,7 +7,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"syscall"
 
@@ -40,11 +42,12 @@ func NewConfigHandler(store *runtimeconfig.Store, listenAddr, dbPath string, all
 	}
 }
 
-// RegisterRoutes wires both endpoints onto mux behind the supplied
+// RegisterRoutes wires the endpoints onto mux behind the supplied
 // admin middleware.
 func (h *ConfigHandler) RegisterRoutes(mux *http.ServeMux, adminMW func(http.HandlerFunc) http.HandlerFunc) {
 	mux.HandleFunc("/api/config", adminMW(h.handleConfig))
 	mux.HandleFunc("/api/admin/restart", adminMW(h.handleRestart))
+	mux.HandleFunc("/api/admin/browse", adminMW(h.handleBrowse))
 }
 
 // configEnvelope is what /api/config returns. The "bootstrap" object
@@ -146,6 +149,152 @@ func (h *ConfigHandler) handleRestart(w http.ResponseWriter, r *http.Request) {
 			os.Exit(0)
 		}
 	}()
+}
+
+// browseEntry is one row in the visual path picker.
+type browseEntry struct {
+	Name  string `json:"name"`
+	Path  string `json:"path"`
+	IsDir bool   `json:"is_dir"`
+	Size  int64  `json:"size,omitempty"`
+}
+
+// browseResponse is what /api/admin/browse returns. When Path is empty
+// the picker is at the "roots" level and Entries lists the configured
+// allowed_log_roots (the only places it is permitted to start from).
+type browseResponse struct {
+	Path    string        `json:"path"`
+	Parent  string        `json:"parent"`
+	AtRoots bool          `json:"at_roots"`
+	Roots   []string      `json:"roots"`
+	Entries []browseEntry `json:"entries"`
+}
+
+// handleBrowse powers the dashboard's visual log-path picker. It lists
+// directory contents so operators can click their way to a log file or
+// folder instead of typing an absolute path. Browsing is confined to
+// allowed_log_roots; when that list is empty (operators who accept the
+// risk) the whole filesystem is reachable, mirroring the path-allow
+// behaviour in runtimeconfig.
+func (h *ConfigHandler) handleBrowse(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeJSONError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+	roots := h.browseRoots()
+	reqPath := strings.TrimSpace(r.URL.Query().Get("path"))
+
+	// No path yet: present the roots as the starting points. With a
+	// single root we descend into it directly so there is no pointless
+	// one-item screen.
+	if reqPath == "" {
+		if len(roots) == 1 {
+			reqPath = roots[0]
+		} else {
+			entries := make([]browseEntry, 0, len(roots))
+			for _, root := range roots {
+				entries = append(entries, browseEntry{Name: root, Path: root, IsDir: true})
+			}
+			writeJSONStatus(w, http.StatusOK, browseResponse{AtRoots: true, Roots: roots, Entries: entries})
+			return
+		}
+	}
+
+	clean := filepath.Clean(reqPath)
+	if !h.browseAllowed(clean) {
+		writeJSONError(w, http.StatusForbidden, "path is outside the allowed log roots")
+		return
+	}
+	info, err := os.Stat(clean)
+	if err != nil {
+		writeJSONError(w, http.StatusBadRequest, "cannot read path: "+err.Error())
+		return
+	}
+	if !info.IsDir() {
+		// Selecting a file's directory is the useful behaviour; fall
+		// back to its parent so the picker stays navigable.
+		clean = filepath.Dir(clean)
+	}
+	dirents, err := os.ReadDir(clean)
+	if err != nil {
+		writeJSONError(w, http.StatusBadRequest, "cannot list directory: "+err.Error())
+		return
+	}
+	entries := make([]browseEntry, 0, len(dirents))
+	for _, de := range dirents {
+		name := de.Name()
+		if strings.HasPrefix(name, ".") {
+			continue // hide dotfiles to keep the picker tidy
+		}
+		full := filepath.Join(clean, name)
+		isDir := de.IsDir()
+		var size int64
+		if fi, err := de.Info(); err == nil && !isDir {
+			size = fi.Size()
+		}
+		entries = append(entries, browseEntry{Name: name, Path: full, IsDir: isDir, Size: size})
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].IsDir != entries[j].IsDir {
+			return entries[i].IsDir // directories first
+		}
+		return strings.ToLower(entries[i].Name) < strings.ToLower(entries[j].Name)
+	})
+
+	// Offer a parent unless we would step above the allowed roots.
+	parent := filepath.Dir(clean)
+	if parent == clean || !h.browseAllowed(parent) {
+		parent = ""
+	}
+	writeJSONStatus(w, http.StatusOK, browseResponse{
+		Path:    clean,
+		Parent:  parent,
+		Roots:   roots,
+		Entries: entries,
+	})
+}
+
+// browseRoots returns the cleaned, non-empty allowed_log_roots. When
+// none are configured it falls back to the filesystem root so the
+// picker still has somewhere to start.
+func (h *ConfigHandler) browseRoots() []string {
+	roots := make([]string, 0, len(h.allowedLogRoots))
+	for _, root := range h.allowedLogRoots {
+		root = filepath.Clean(strings.TrimSpace(root))
+		if root == "" || root == "." {
+			continue
+		}
+		roots = append(roots, root)
+	}
+	if len(roots) == 0 {
+		roots = append(roots, string(filepath.Separator))
+	}
+	return roots
+}
+
+// browseAllowed reports whether p is inside one of the configured
+// allowed_log_roots. With no roots configured everything is allowed,
+// matching runtimeconfig.pathAllowed.
+func (h *ConfigHandler) browseAllowed(p string) bool {
+	if len(h.allowedLogRoots) == 0 {
+		return true
+	}
+	cleaned := filepath.Clean(p)
+	for _, root := range h.allowedLogRoots {
+		root = filepath.Clean(strings.TrimSpace(root))
+		if root == "" || root == "." {
+			continue
+		}
+		rel, err := filepath.Rel(root, cleaned)
+		if err != nil {
+			continue
+		}
+		if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			continue
+		}
+		return true
+	}
+	return false
 }
 
 func writeJSONStatus(w http.ResponseWriter, status int, v interface{}) {
