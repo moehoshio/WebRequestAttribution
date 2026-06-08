@@ -44,6 +44,10 @@ var (
 	ErrInvalidRole        = errors.New("auth: invalid role")
 	ErrSessionExpired     = errors.New("auth: session expired")
 	ErrSessionNotFound    = errors.New("auth: session not found")
+	// ErrLastAdmin is returned when an operation would leave the system
+	// with no enabled administrator (demoting or disabling the last one).
+	// Allowing it would lock everyone out of the admin surfaces.
+	ErrLastAdmin = errors.New("auth: cannot remove the last administrator")
 )
 
 // User is the public view of an account row. password_hash never leaves
@@ -182,6 +186,16 @@ func (s *Service) CountUsers() (int, error) {
 	return n, err
 }
 
+// CountAdmins returns the number of enabled administrator accounts.
+// Used to prevent the last admin from being demoted or disabled.
+func (s *Service) CountAdmins() (int, error) {
+	var n int
+	err := s.db.QueryRow(
+		`SELECT COUNT(*) FROM users WHERE role = ? AND disabled = 0`, RoleAdmin,
+	).Scan(&n)
+	return n, err
+}
+
 // CreateUser inserts a new account. The plaintext password is hashed
 // with bcrypt; only the hash is stored.
 func (s *Service) CreateUser(username, password, role string) (*User, error) {
@@ -292,6 +306,27 @@ func (s *Service) ListUsers() ([]*User, error) {
 func (s *Service) UpdateUser(id int64, role *string, disabled *bool) (*User, error) {
 	if role == nil && disabled == nil {
 		return s.GetUser(id)
+	}
+	// Guard against removing the last administrator. If this update
+	// demotes (role → non-admin) or disables a currently-enabled admin,
+	// and no other enabled admin remains, refuse so the operator can't
+	// accidentally lock everyone out of the admin surfaces.
+	demoting := role != nil && *role != RoleAdmin
+	disabling := disabled != nil && *disabled
+	if demoting || disabling {
+		cur, err := s.GetUser(id)
+		if err != nil {
+			return nil, err
+		}
+		if cur.Role == RoleAdmin && !cur.Disabled {
+			n, err := s.CountAdmins()
+			if err != nil {
+				return nil, err
+			}
+			if n <= 1 {
+				return nil, ErrLastAdmin
+			}
+		}
 	}
 	sets := []string{"updated_at = ?"}
 	args := []interface{}{s.now().UTC()}

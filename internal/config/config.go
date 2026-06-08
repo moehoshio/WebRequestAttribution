@@ -136,18 +136,30 @@ type BootstrapAdmin struct {
 
 // DefaultConfig returns a Config populated with sensible defaults.
 //
-// Sources is intentionally empty and Watch is false: a fresh install
-// has nothing to monitor until the operator adds a source via the
-// settings panel. This avoids spamming "file not found" errors when
-// the binary is launched on a host that doesn't actually have the
-// expected nginx layout.
+// Out of the box we seed a single directory source that recursively
+// scans the current working folder for log files (`*.log*`) and turn
+// Watch on, so a freshly launched binary starts surfacing data without
+// any manual configuration. A dir source matched by a glob does not
+// spam "file not found" errors when nothing matches — it simply finds
+// no files — so this is safe even on hosts without the expected layout.
+// The operator can still refine or remove the source from the Settings
+// panel afterwards.
 func DefaultConfig() *Config {
 	return &Config{
 		ListenAddr: ":8080",
 		DBPath:     "./data/stats.db",
-		Watch:      false,
+		Watch:      true,
 		Keywords:   []string{},
-		Sources:    []Source{},
+		Sources: []Source{
+			{
+				Name:      "current-folder",
+				Type:      SourceDir,
+				Path:      ".",
+				Pattern:   "*.log*",
+				Recursive: true,
+				Format:    parser.FormatConfig{Engine: "auto"},
+			},
+		},
 	}
 }
 

@@ -103,6 +103,43 @@ func TestBootstrapAdminOnlyOnce(t *testing.T) {
 	}
 }
 
+func TestUpdateUserProtectsLastAdmin(t *testing.T) {
+	svc := newTestService(t)
+	admin, err := svc.CreateUser("root", "rootroot1", RoleAdmin)
+	if err != nil {
+		t.Fatalf("CreateUser admin: %v", err)
+	}
+	viewer, err := svc.CreateUser("viewer", "viewerpass", RoleViewer)
+	if err != nil {
+		t.Fatalf("CreateUser viewer: %v", err)
+	}
+
+	// Demoting the sole admin must be refused.
+	role := RoleViewer
+	if _, err := svc.UpdateUser(admin.ID, &role, nil); !errors.Is(err, ErrLastAdmin) {
+		t.Fatalf("demote last admin: got %v want ErrLastAdmin", err)
+	}
+	// Disabling the sole admin must be refused too.
+	disabled := true
+	if _, err := svc.UpdateUser(admin.ID, nil, &disabled); !errors.Is(err, ErrLastAdmin) {
+		t.Fatalf("disable last admin: got %v want ErrLastAdmin", err)
+	}
+
+	// Promote the viewer: now there are two admins.
+	adminRole := RoleAdmin
+	if _, err := svc.UpdateUser(viewer.ID, &adminRole, nil); err != nil {
+		t.Fatalf("promote viewer: %v", err)
+	}
+	// With two admins, demoting one is allowed.
+	if _, err := svc.UpdateUser(admin.ID, &role, nil); err != nil {
+		t.Fatalf("demote one of two admins: %v", err)
+	}
+	// The remaining (now sole) admin is again protected.
+	if _, err := svc.UpdateUser(viewer.ID, &role, nil); !errors.Is(err, ErrLastAdmin) {
+		t.Fatalf("demote remaining admin: got %v want ErrLastAdmin", err)
+	}
+}
+
 func TestSessionLifecycle(t *testing.T) {
 	svc := newTestService(t)
 	u, err := svc.CreateUser("eve", "passpasspass", RoleViewer)

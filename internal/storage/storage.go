@@ -535,8 +535,53 @@ func (s *Store) topNFrom(table, col, where string, args []interface{}, n int) []
 	return items
 }
 
+// MinuteCountItem is a single per-minute bucket used by the realtime
+// trend chart. Minute is formatted as "YYYY-MM-DD HH:MM" (UTC).
+type MinuteCountItem struct {
+	Minute string `json:"minute"`
+	Count  int    `json:"count"`
+}
+
+// RequestsPerMinute returns the most recent `minutes` per-minute buckets
+// that contain at least one request, honouring the same filters as
+// Stats/Query. Results are ordered oldest-first so the frontend can plot
+// them directly; gaps (minutes with no traffic) are left to the caller to
+// fill. This powers the live "realtime requests" trend.
+func (s *Store) RequestsPerMinute(f QueryFilter, minutes int) []MinuteCountItem {
+	if minutes <= 0 {
+		minutes = 60
+	}
+	where, args := buildWhere(f, "")
+	// Bucket by minute. Timestamps are persisted via Go's time formatting
+	// ("YYYY-MM-DD HH:MM:SS …"), which SQLite's date functions cannot
+	// parse, so we slice the fixed-width "YYYY-MM-DD HH:MM" prefix directly
+	// instead of relying on strftime.
+	query := "SELECT substr(timestamp, 1, 16) AS m, COUNT(*) AS cnt FROM requests" +
+		where + " GROUP BY m ORDER BY m DESC LIMIT ?"
+	a := append(append([]interface{}{}, args...), minutes)
+	rows, err := s.db.Query(query, a...)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	var items []MinuteCountItem
+	for rows.Next() {
+		var item MinuteCountItem
+		rows.Scan(&item.Minute, &item.Count)
+		items = append(items, item)
+	}
+	// Reverse into chronological (oldest-first) order.
+	for i, j := 0, len(items)-1; i < j; i, j = i+1, j-1 {
+		items[i], items[j] = items[j], items[i]
+	}
+	return items
+}
+
 func (s *Store) requestsPerDay(where string, args []interface{}) []TimeCountItem {
-	query := "SELECT DATE(timestamp) as d, COUNT(*) as cnt FROM requests" + where + " GROUP BY d ORDER BY d DESC LIMIT 30"
+	// Slice the fixed-width "YYYY-MM-DD" prefix rather than DATE(): the
+	// stored timestamp format (Go's time formatting) is not understood by
+	// SQLite's date functions. See RequestsPerMinute for the same rationale.
+	query := "SELECT substr(timestamp, 1, 10) as d, COUNT(*) as cnt FROM requests" + where + " GROUP BY d ORDER BY d DESC LIMIT 30"
 	rows, err := s.db.Query(query, args...)
 	if err != nil {
 		return nil
@@ -547,6 +592,11 @@ func (s *Store) requestsPerDay(where string, args []interface{}) []TimeCountItem
 		var item TimeCountItem
 		rows.Scan(&item.Date, &item.Count)
 		items = append(items, item)
+	}
+	// The query returns newest-first (to take the most recent 30 days);
+	// reverse into chronological order so the trend chart reads left→right.
+	for i, j := 0, len(items)-1; i < j; i, j = i+1, j-1 {
+		items[i], items[j] = items[j], items[i]
 	}
 	return items
 }

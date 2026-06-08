@@ -493,7 +493,7 @@ func statusForError(err error) int {
 		return http.StatusNotFound
 	case errors.Is(err, ErrUserExists):
 		return http.StatusConflict
-	case errors.Is(err, ErrWeakPassword), errors.Is(err, ErrInvalidRole):
+	case errors.Is(err, ErrWeakPassword), errors.Is(err, ErrInvalidRole), errors.Is(err, ErrLastAdmin):
 		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
