@@ -21,6 +21,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/stats", h.handleStats)
 	mux.HandleFunc("/api/requests", h.handleRequests)
 	mux.HandleFunc("/api/geo", h.handleGeo)
+	mux.HandleFunc("/api/realtime", h.handleRealtime)
 }
 
 // RegisterRoutesWithMiddleware registers the API routes wrapped with the
@@ -30,6 +31,7 @@ func (h *Handler) RegisterRoutesWithMiddleware(mux *http.ServeMux, mw func(http.
 	mux.HandleFunc("/api/stats", mw(h.handleStats))
 	mux.HandleFunc("/api/requests", mw(h.handleRequests))
 	mux.HandleFunc("/api/geo", mw(h.handleGeo))
+	mux.HandleFunc("/api/realtime", mw(h.handleRealtime))
 }
 
 func (h *Handler) handleStats(w http.ResponseWriter, r *http.Request) {
@@ -90,6 +92,32 @@ func (h *Handler) handleGeo(w http.ResponseWriter, r *http.Request) {
 		"countries": countries,
 		"total":     total,
 	})
+}
+
+// handleRealtime returns per-minute request counts for the recent
+// window so the dashboard can render a live-updating trend. The same
+// filters as /api/stats apply; an optional "minutes" query param
+// controls the window size (default 60, capped at 1440).
+func (h *Handler) handleRealtime(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	f := parseFilter(r)
+	minutes := 60
+	if v := r.URL.Query().Get("minutes"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			minutes = n
+		}
+	}
+	if minutes > 1440 {
+		minutes = 1440
+	}
+	series := h.store.RequestsPerMinute(f, minutes)
+	if series == nil {
+		series = []storage.MinuteCountItem{}
+	}
+	writeJSON(w, map[string]interface{}{"series": series})
 }
 
 func parseFilter(r *http.Request) storage.QueryFilter {

@@ -550,6 +550,90 @@
         .trend-grid-line { stroke: var(--border); stroke-width: 1; }
         .trend-axis-label { font-size: 10px; fill: var(--text-secondary); }
 
+        /* ===== Hover animations (overview charts) ===== */
+        /* Bars: lift + brighten the hovered row, and grow the fill slightly. */
+        .bar-item { transition: transform 0.15s ease; }
+        .bar-item:hover { transform: translateX(2px); }
+        .bar-item:hover .bar-label { color: var(--text-primary); }
+        .bar-item .bar-fill { transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1), filter 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease; transform-origin: left center; }
+        .bar-item:hover .bar-fill { filter: brightness(1.12) saturate(1.1); box-shadow: 0 2px 14px var(--accent-glow); transform: scaleY(1.08); }
+
+        /* Donut: dim non-hovered slices, pop the hovered one. The .is-hovering
+           flag is toggled by JS so siblings only dim while a slice is active. */
+        .donut-seg { transition: opacity 0.18s ease, stroke-width 0.18s ease; cursor: pointer; }
+        .donut-svg.is-hovering .donut-seg { opacity: 0.3; }
+        .donut-svg.is-hovering .donut-seg.hovered { opacity: 1; stroke-width: 20; }
+        .donut-legend-item { transition: color 0.15s ease, transform 0.15s ease; cursor: pointer; border-radius: 6px; padding: 2px 4px; }
+        .donut-legend-item:hover { color: var(--text-primary); transform: translateX(2px); background: var(--bg-secondary); }
+
+        /* Trend: interactive hover guideline + focus dot + floating label. */
+        .trend-dot { transition: r 0.15s ease; cursor: pointer; }
+        .trend-dot:hover { r: 6; }
+        .trend-hover-line { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 4 4; opacity: 0; transition: opacity 0.12s ease; }
+        .trend-focus { opacity: 0; transition: opacity 0.12s ease; }
+        .trend-tip-bg { fill: var(--bg-secondary); stroke: var(--border); stroke-width: 1; }
+        .trend-tip-date { font-size: 11px; fill: var(--text-secondary); }
+        .trend-tip-val { font-size: 13px; font-weight: 700; fill: var(--text-primary); }
+        .trend-hit { fill: transparent; cursor: pointer; }
+
+        /* Realtime status dot. */
+        .live-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+        .live-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 0 rgba(16,185,129,0.6); animation: livePulse 1.6s infinite; }
+        @keyframes livePulse {
+            0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.55); }
+            70% { box-shadow: 0 0 0 7px rgba(16,185,129,0); }
+            100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+        }
+
+        /* ===== Custom layout (composable dashboard) ===== */
+        .custom-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .custom-toolbar .custom-cols { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-secondary); }
+        .custom-toolbar .custom-cols select { padding: 6px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); }
+        .chart-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+        .custom-layout {
+            display: grid;
+            grid-auto-rows: minmax(220px, auto);
+            gap: 20px;
+        }
+        .widget {
+            position: relative;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 8px 16px 16px;
+            overflow: hidden;
+            transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+            display: flex; flex-direction: column;
+        }
+        .widget:hover { box-shadow: var(--shadow-lg); border-color: var(--accent); }
+        .widget.dragging { opacity: 0.5; }
+        .widget.drag-over { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .widget .widget-head {
+            display: flex; align-items: center; gap: 6px;
+            padding: 8px 2px 6px; cursor: grab;
+        }
+        .widget .widget-head:active { cursor: grabbing; }
+        .widget .widget-grip { color: var(--text-muted); font-size: 14px; }
+        .widget .widget-title { flex: 1; font-size: 13px; font-weight: 600; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .widget .widget-ctrls { display: flex; gap: 2px; opacity: 0; transition: opacity 0.15s ease; }
+        .widget:hover .widget-ctrls { opacity: 1; }
+        .widget .w-btn {
+            border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary);
+            border-radius: 6px; width: 24px; height: 24px; cursor: pointer; font-size: 13px;
+            display: inline-flex; align-items: center; justify-content: center; line-height: 1; transition: all 0.15s ease;
+        }
+        .widget .w-btn:hover { color: var(--text-primary); border-color: var(--accent); background: var(--bg-card-hover); }
+        .widget .w-btn.danger:hover { color: var(--danger); border-color: var(--danger); }
+        .widget .widget-body { flex: 1; min-height: 0; overflow: auto; }
+        .widget .widget-body .chart-box { min-height: 0; }
+        .widget .widget-body .chart-box > h3 { display: none; }
+        .custom-empty { grid-column: 1 / -1; }
+        @media (max-width: 768px) {
+            .custom-layout { grid-template-columns: 1fr !important; }
+            .widget { grid-column: auto !important; grid-row: auto !important; }
+        }
+
         /* Table */
         table {
             width: 100%;
@@ -952,14 +1036,20 @@
             </div>
         </div>
 
-        <div class="stats-grid" id="statsCards"></div>
+        <div class="tabs">
+            <div class="tab active" data-tab="overview" onclick="switchTab('overview')"><span aria-hidden="true">📈</span> <span data-i18n="tab_overview"></span></div>
+            <div class="tab" data-tab="map" onclick="switchTab('map')"><span aria-hidden="true">🗺️</span> <span data-i18n="tab_map"></span></div>
+            <div class="tab" data-tab="requests" onclick="switchTab('requests')"><span aria-hidden="true">📋</span> <span data-i18n="tab_requests"></span></div>
+            <div class="tab hidden" id="tabUsersHandle" data-tab="users" onclick="switchTab('users')"><span aria-hidden="true">👥</span> <span data-i18n="tab_users"></span></div>
+            <div class="tab hidden" id="tabSettingsHandle" data-tab="settings" onclick="switchTab('settings')"><span aria-hidden="true">⚙️</span> <span data-i18n="tab_settings"></span></div>
+        </div>
 
         <div class="filters">
             <div class="filters-header" onclick="toggleFilters()">
                 <h2><span>🔍</span> <span data-i18n="filters_title"></span></h2>
-                <span class="toggle-icon" id="filterToggleIcon">▼</span>
+                <span class="toggle-icon collapsed" id="filterToggleIcon">▼</span>
             </div>
-            <div class="filter-body" id="filterBody">
+            <div class="filter-body collapsed" id="filterBody">
                 <div class="filter-row">
                     <div class="filter-group">
                         <label data-i18n="start_date"></label>
@@ -1026,23 +1116,32 @@
             </div>
         </div>
 
-        <div class="tabs">
-            <div class="tab active" data-tab="overview" onclick="switchTab('overview')"><span aria-hidden="true">📈</span> <span data-i18n="tab_overview"></span></div>
-            <div class="tab" data-tab="map" onclick="switchTab('map')"><span aria-hidden="true">🗺️</span> <span data-i18n="tab_map"></span></div>
-            <div class="tab" data-tab="requests" onclick="switchTab('requests')"><span aria-hidden="true">📋</span> <span data-i18n="tab_requests"></span></div>
-            <div class="tab hidden" id="tabUsersHandle" data-tab="users" onclick="switchTab('users')"><span aria-hidden="true">👥</span> <span data-i18n="tab_users"></span></div>
-            <div class="tab hidden" id="tabSettingsHandle" data-tab="settings" onclick="switchTab('settings')"><span aria-hidden="true">⚙️</span> <span data-i18n="tab_settings"></span></div>
-        </div>
-
         <div id="tab-overview" class="panel">
+            <div class="stats-grid" id="statsCards"></div>
             <div class="chart-toolbar">
                 <div class="chart-view-switch" role="tablist">
+                    <button type="button" class="chart-view-btn" data-view="realtime" onclick="setChartView('realtime')"><span aria-hidden="true">🟢</span> <span data-i18n="view_realtime"></span></button>
+                    <button type="button" class="chart-view-btn" data-view="trend" onclick="setChartView('trend')"><span aria-hidden="true">📈</span> <span data-i18n="view_trend"></span></button>
                     <button type="button" class="chart-view-btn" data-view="bars" onclick="setChartView('bars')"><span aria-hidden="true">📊</span> <span data-i18n="view_bars"></span></button>
                     <button type="button" class="chart-view-btn" data-view="donut" onclick="setChartView('donut')"><span aria-hidden="true">🍩</span> <span data-i18n="view_donut"></span></button>
-                    <button type="button" class="chart-view-btn" data-view="trend" onclick="setChartView('trend')"><span aria-hidden="true">📈</span> <span data-i18n="view_trend"></span></button>
+                    <button type="button" class="chart-view-btn" data-view="custom" onclick="setChartView('custom')"><span aria-hidden="true">🧩</span> <span data-i18n="view_custom"></span></button>
+                </div>
+                <div id="customToolbar" class="custom-toolbar hidden">
+                    <button type="button" class="btn btn-primary" onclick="openWidgetPicker()"><span aria-hidden="true">➕</span> <span data-i18n="layout_add_widget"></span></button>
+                    <label class="custom-cols"><span data-i18n="layout_columns"></span>
+                        <select id="layoutCols" onchange="setLayoutCols(this.value)">
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                        </select>
+                    </label>
+                    <button type="button" class="btn btn-secondary" onclick="resetLayout()"><span aria-hidden="true">↺</span> <span data-i18n="layout_reset"></span></button>
                 </div>
             </div>
             <div class="chart-container" id="charts"></div>
+            <div id="customLayout" class="custom-layout hidden"></div>
         </div>
 
         <div id="tab-map" class="panel" style="display:none;">
@@ -1193,6 +1292,47 @@
                 <div class="foot-actions">
                     <button class="btn btn-secondary" onclick="closePicker()" data-i18n="picker_cancel"></button>
                     <button class="btn btn-primary hidden" id="pickerSelectDir" onclick="pickerChooseCurrent()" data-i18n="picker_select_folder"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom-layout widget picker -->
+    <div id="widgetPicker" class="modal-overlay hidden">
+        <div class="modal" role="dialog" aria-modal="true">
+            <div class="modal-head">
+                <h3 data-i18n="layout_add_widget"></h3>
+                <button class="modal-close" onclick="closeWidgetPicker()" aria-label="close">&times;</button>
+            </div>
+            <div class="modal-body" style="padding:18px 22px;">
+                <div class="field" style="margin-bottom:16px;">
+                    <label data-i18n="layout_widget_type"></label>
+                    <select id="widgetType" onchange="onWidgetTypeChange()">
+                        <option value="realtime" data-i18n="view_realtime"></option>
+                        <option value="trend" data-i18n="chart_trend"></option>
+                        <option value="bar" data-i18n="layout_type_bar"></option>
+                        <option value="donut" data-i18n="layout_type_donut"></option>
+                    </select>
+                </div>
+                <div class="field" id="widgetMetricField">
+                    <label data-i18n="layout_widget_metric"></label>
+                    <select id="widgetMetric">
+                        <option value="paths" data-i18n="top_paths"></option>
+                        <option value="ips" data-i18n="top_ips"></option>
+                        <option value="countries" data-i18n="chart_countries"></option>
+                        <option value="domains" data-i18n="chart_domains"></option>
+                        <option value="os" data-i18n="chart_os"></option>
+                        <option value="browsers" data-i18n="chart_browsers"></option>
+                        <option value="status" data-i18n="chart_status_codes"></option>
+                        <option value="keywords" data-i18n="chart_keywords"></option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <span class="foot-hint" data-i18n="layout_widget_hint"></span>
+                <div class="foot-actions">
+                    <button class="btn btn-secondary" onclick="closeWidgetPicker()" data-i18n="picker_cancel"></button>
+                    <button class="btn btn-primary" onclick="confirmAddWidget()" data-i18n="layout_add"></button>
                 </div>
             </div>
         </div>
@@ -1741,7 +1881,21 @@
                 map_total: '已定位 {countries} 個國家/地區，共 {count} 個請求',
                 settings_geo: '啟用 IP 地理定位',
                 settings_geo_hint: '於背景查詢來源 IP 的概略位置以繪製世界地圖。關閉後不再對外查詢。',
-                geo_unknown: '未知'
+                geo_unknown: '未知',
+                view_realtime: '實時', view_custom: '自訂佈局',
+                chart_realtime: '實時請求趨勢',
+                realtime_live: '即時更新中',
+                realtime_window: '最近 {minutes} 分鐘',
+                realtime_per_minute: '每分鐘請求數',
+                trend_select: '已選取',
+                layout_add_widget: '新增圖表', layout_add: '新增',
+                layout_columns: '欄數', layout_reset: '重置佈局',
+                layout_widget_type: '圖表類型', layout_widget_metric: '資料維度',
+                layout_type_bar: '條形圖 (Top)', layout_type_donut: '圓圈百分比',
+                layout_widget_hint: '新增後可拖曳調整位置、縮放格子或移除。',
+                layout_empty: '尚未加入任何圖表，點擊「新增圖表」開始自訂你的總覽。',
+                widget_remove: '移除', widget_wider: '加寬', widget_narrower: '縮窄',
+                widget_taller: '加高', widget_shorter: '縮短'
             },
             'zh-CN': {
                 tab_map: '世界地图', chart_countries: '热门国家/地区', country: '国家/地区',
@@ -1751,7 +1905,21 @@
                 map_total: '已定位 {countries} 个国家/地区，共 {count} 个请求',
                 settings_geo: '启用 IP 地理定位',
                 settings_geo_hint: '在后台查询来源 IP 的大致位置以绘制世界地图。关闭后不再对外查询。',
-                geo_unknown: '未知'
+                geo_unknown: '未知',
+                view_realtime: '实时', view_custom: '自定义布局',
+                chart_realtime: '实时请求趋势',
+                realtime_live: '实时更新中',
+                realtime_window: '最近 {minutes} 分钟',
+                realtime_per_minute: '每分钟请求数',
+                trend_select: '已选中',
+                layout_add_widget: '新增图表', layout_add: '新增',
+                layout_columns: '列数', layout_reset: '重置布局',
+                layout_widget_type: '图表类型', layout_widget_metric: '数据维度',
+                layout_type_bar: '条形图 (Top)', layout_type_donut: '圆圈百分比',
+                layout_widget_hint: '添加后可拖拽调整位置、缩放格子或移除。',
+                layout_empty: '尚未添加任何图表，点击「新增图表」开始自定义你的总览。',
+                widget_remove: '移除', widget_wider: '加宽', widget_narrower: '缩窄',
+                widget_taller: '加高', widget_shorter: '缩短'
             },
             en: {
                 tab_map: 'World map', chart_countries: 'Top Countries', country: 'Country',
@@ -1761,7 +1929,21 @@
                 map_total: '{countries} countries located, {count} requests',
                 settings_geo: 'Enable IP geolocation',
                 settings_geo_hint: 'Look up the approximate location of source IPs in the background to draw the world map. When off, no external lookups are made.',
-                geo_unknown: 'Unknown'
+                geo_unknown: 'Unknown',
+                view_realtime: 'Realtime', view_custom: 'Custom layout',
+                chart_realtime: 'Realtime request trend',
+                realtime_live: 'Live',
+                realtime_window: 'Last {minutes} min',
+                realtime_per_minute: 'Requests per minute',
+                trend_select: 'Selected',
+                layout_add_widget: 'Add widget', layout_add: 'Add',
+                layout_columns: 'Columns', layout_reset: 'Reset layout',
+                layout_widget_type: 'Widget type', layout_widget_metric: 'Metric',
+                layout_type_bar: 'Bar (Top)', layout_type_donut: 'Donut',
+                layout_widget_hint: 'After adding, drag to reposition, resize cells, or remove.',
+                layout_empty: 'No widgets yet — click “Add widget” to compose your overview.',
+                widget_remove: 'Remove', widget_wider: 'Wider', widget_narrower: 'Narrower',
+                widget_taller: 'Taller', widget_shorter: 'Shorter'
             },
             ja: {
                 tab_map: '世界地図', chart_countries: '国・地域 上位', country: '国・地域',
@@ -1771,7 +1953,21 @@
                 map_total: '{countries} の国・地域、{count} 件のリクエストを測位',
                 settings_geo: 'IP ジオロケーションを有効化',
                 settings_geo_hint: 'バックグラウンドで送信元 IP のおおよその位置を取得し、世界地図を描画します。オフの場合は外部問い合わせを行いません。',
-                geo_unknown: '不明'
+                geo_unknown: '不明',
+                view_realtime: 'リアルタイム', view_custom: 'カスタム配置',
+                chart_realtime: 'リアルタイム リクエスト推移',
+                realtime_live: 'ライブ更新中',
+                realtime_window: '直近 {minutes} 分',
+                realtime_per_minute: '毎分リクエスト数',
+                trend_select: '選択中',
+                layout_add_widget: 'ウィジェット追加', layout_add: '追加',
+                layout_columns: '列数', layout_reset: '配置をリセット',
+                layout_widget_type: 'ウィジェット種別', layout_widget_metric: '指標',
+                layout_type_bar: '棒グラフ (上位)', layout_type_donut: '円グラフ',
+                layout_widget_hint: '追加後はドラッグで移動、セルのリサイズ、削除ができます。',
+                layout_empty: 'ウィジェットがありません。「ウィジェット追加」から概要を構成しましょう。',
+                widget_remove: '削除', widget_wider: '広く', widget_narrower: '狭く',
+                widget_taller: '高く', widget_shorter: '低く'
             }
         };
         Object.keys(extraI18n).forEach(function(lang) {
@@ -1785,12 +1981,38 @@
         let lastStatsData = null;
         let lastGeoData = null;
         let lastRequestRows = null;
+        let lastRealtimeData = null;
+        // Window (minutes) for the realtime per-minute trend.
+        const realtimeMinutes = 60;
+        let realtimeTimer = null;
         const gradients = ['grad-1', 'grad-2', 'grad-3', 'grad-4', 'grad-5', 'grad-6', 'grad-7'];
         // Solid colours used for SVG fills (donut slices, trend line) where CSS
         // gradient classes can't be applied directly.
         const chartColors = ['#6366f1', '#8b5cf6', '#ec4899', '#f97316', '#eab308', '#14b8a6', '#06b6d4', '#3b82f6', '#a3e635', '#f43f5e'];
-        // Active overview chart style: 'bars' | 'donut' | 'trend'.
-        let chartViewMode = localStorage.getItem('chartView') || 'bars';
+        // Active overview chart style: 'realtime' | 'trend' | 'bars' | 'donut' | 'custom'.
+        const CHART_VIEWS = ['realtime', 'trend', 'bars', 'donut', 'custom'];
+        let chartViewMode = localStorage.getItem('chartView') || 'realtime';
+        if (CHART_VIEWS.indexOf(chartViewMode) === -1) chartViewMode = 'realtime';
+
+        // Metric registry: maps a metric key used by the custom layout and
+        // donut/bar widgets to its icon, i18n title and an accessor that pulls
+        // the right series out of the cached stats / geo payloads.
+        const METRICS = {
+            paths:     { icon: '🛤️', titleKey: 'top_paths',          get: function(d){ return (d && d.top_paths) || []; } },
+            ips:       { icon: '🌐', titleKey: 'top_ips',            get: function(d){ return (d && d.top_ips) || []; } },
+            countries: { icon: '🗺️', titleKey: 'chart_countries',    get: function(){ return geoCountryItems(); } },
+            domains:   { icon: '🏷️', titleKey: 'chart_domains',      get: function(d){ return (d && d.top_domains) || []; } },
+            os:        { icon: '💻', titleKey: 'chart_os',           get: function(d){ return (d && d.top_os) || []; } },
+            browsers:  { icon: '🌍', titleKey: 'chart_browsers',     get: function(d){ return (d && d.top_browsers) || []; } },
+            status:    { icon: '📊', titleKey: 'chart_status_codes', get: function(d){ return (d && d.status_codes) || []; } },
+            keywords:  { icon: '🔑', titleKey: 'chart_keywords',     get: function(d){ return (d && d.top_keywords) || []; } }
+        };
+
+        function geoCountryItems() {
+            return lastGeoData && lastGeoData.countries
+                ? lastGeoData.countries.map(function(c) { return { name: c.country || c.country_code || t('geo_unknown'), count: c.count }; })
+                : [];
+        }
 
         const savedTheme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', savedTheme);
@@ -1907,6 +2129,9 @@
             loadStats();
             loadRequests();
             loadGeo();
+            if (chartViewMode === 'realtime' || (chartViewMode === 'custom' && layoutNeedsRealtime())) {
+                loadRealtime();
+            }
         }
 
         function clearFilters() {
@@ -1930,6 +2155,11 @@
             if (tab === 'requests') loadRequests();
             if (tab === 'users') loadUsers();
             if (tab === 'settings') loadSettings();
+            if (tab === 'overview' && (chartViewMode === 'realtime' || (chartViewMode === 'custom' && layoutNeedsRealtime()))) {
+                loadRealtime();
+            }
+            // Pause the live poll whenever the overview isn't on screen.
+            syncRealtimeTimer();
         }
 
         async function loadStats() {
@@ -1979,13 +2209,18 @@
             return div.innerHTML;
         }
 
-        // setChartView switches the overview between display styles (bar chart,
-        // donut/percentage, time trend) and re-renders using the cached stats.
+        // setChartView switches the overview between display styles (realtime,
+        // time trend, bar chart, donut/percentage, or the custom layout) and
+        // re-renders using the cached data.
         function setChartView(mode) {
-            chartViewMode = (mode === 'donut' || mode === 'trend') ? mode : 'bars';
+            chartViewMode = CHART_VIEWS.indexOf(mode) === -1 ? 'realtime' : mode;
             localStorage.setItem('chartView', chartViewMode);
             updateChartViewButtons();
-            if (lastStatsData) renderCharts(lastStatsData);
+            renderCharts(lastStatsData || {});
+            syncRealtimeTimer();
+            if (chartViewMode === 'realtime' || (chartViewMode === 'custom' && layoutNeedsRealtime())) {
+                loadRealtime();
+            }
         }
 
         function updateChartViewButtons() {
@@ -1995,14 +2230,33 @@
         }
 
         function renderCharts(data) {
+            data = data || {};
             const container = document.getElementById('charts');
-            const countryItems = lastGeoData && lastGeoData.countries
-                ? lastGeoData.countries.map(function(c) { return { name: c.country || c.country_code || t('geo_unknown'), count: c.count }; })
-                : [];
+            const customHost = document.getElementById('customLayout');
+            const customToolbar = document.getElementById('customToolbar');
+            const countryItems = geoCountryItems();
             updateChartViewButtons();
+
+            // Toggle between the preset chart grid and the custom dashboard.
+            const isCustom = chartViewMode === 'custom';
+            container.classList.toggle('hidden', isCustom);
+            customHost.classList.toggle('hidden', !isCustom);
+            customToolbar.classList.toggle('hidden', !isCustom);
+
+            if (isCustom) {
+                renderCustomLayout();
+                return;
+            }
+
+            if (chartViewMode === 'realtime') {
+                container.innerHTML = renderRealtimeChart(lastRealtimeData);
+                wireOverviewInteractions(container);
+                return;
+            }
 
             if (chartViewMode === 'trend') {
                 container.innerHTML = renderTrendChart('📈', 'chart_trend', data.requests_per_day);
+                wireOverviewInteractions(container);
                 return;
             }
 
@@ -2016,6 +2270,7 @@
                 render('🌍', 'chart_browsers', data.top_browsers, 5) +
                 render('📊', 'chart_status_codes', data.status_codes, 6) +
                 render('🔑', 'chart_keywords', data.top_keywords, 0);
+            wireOverviewInteractions(container);
         }
 
         function chartEmptyState(title) {
@@ -2046,7 +2301,11 @@
                 const frac = it.count / total;
                 const color = chartColors[(gradIdx + i) % chartColors.length];
                 const dash = (frac * circ).toFixed(2) + ' ' + (circ - frac * circ).toFixed(2);
-                const seg = '<circle cx="' + cx + '" cy="' + cy + '" r="' + r +
+                const pct = Math.round(frac * 100);
+                const seg = '<circle class="donut-seg" data-i="' + i + '"' +
+                    ' data-name="' + escapeAttr(it.name) + '" data-pct="' + pct + '"' +
+                    ' data-count="' + it.count + '"' +
+                    ' cx="' + cx + '" cy="' + cy + '" r="' + r +
                     '" fill="none" stroke="' + color + '" stroke-width="16"' +
                     ' stroke-dasharray="' + dash + '"' +
                     ' stroke-dashoffset="' + (-offset).toFixed(2) + '"' +
@@ -2057,7 +2316,8 @@
 
             const topPct = Math.round((top[0].count / total) * 100);
             const svg = '<svg class="donut-svg" width="' + size + '" height="' + size +
-                '" viewBox="0 0 ' + size + ' ' + size + '" role="img">' +
+                '" viewBox="0 0 ' + size + ' ' + size + '" role="img"' +
+                ' data-def-val="' + topPct + '%" data-def-label="' + escapeAttr(top[0].name.slice(0, 14)) + '">' +
                 '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="var(--bg-secondary)" stroke-width="16"></circle>' +
                 segments +
                 '<text x="' + cx + '" y="' + (cy - 2) + '" text-anchor="middle" class="donut-center-value">' + topPct + '%</text>' +
@@ -2067,7 +2327,7 @@
             const legend = top.map(function(it, i) {
                 const color = chartColors[(gradIdx + i) % chartColors.length];
                 const pct = Math.round((it.count / total) * 100);
-                return '<div class="donut-legend-item">' +
+                return '<div class="donut-legend-item" data-i="' + i + '">' +
                     '<span class="donut-dot" style="background:' + color + '"></span>' +
                     '<span class="donut-legend-name" title="' + escapeHtml(it.name) + '">' + escapeHtml(it.name) + '</span>' +
                     '<span class="donut-legend-pct">' + pct + '% · ' + it.count.toLocaleString(currentLang) + '</span>' +
@@ -2085,7 +2345,32 @@
             if (!series || series.length === 0) {
                 return '<div class="chart-box trend-box"><h3>' + title + '</h3><div class="empty-state"><div class="icon">📭</div><p>' + t('no_data') + '</p></div></div>';
             }
+            return '<div class="chart-box trend-box"><h3>' + title + '</h3>' +
+                buildTrendSvg(series, function(p){ return p.date; }, chartColors[0]) + '</div>';
+        }
 
+        // renderRealtimeChart draws the live per-minute request trend. The
+        // series comes from /api/realtime and is refreshed on a timer; a small
+        // "live" badge communicates that it auto-updates.
+        function renderRealtimeChart(series) {
+            const title = '🟢 ' + t('chart_realtime');
+            const badge = '<span class="live-badge"><span class="live-dot"></span>' + t('realtime_live') +
+                ' · ' + t('realtime_window', { minutes: realtimeMinutes }) + '</span>';
+            const head = '<h3 style="justify-content:space-between;width:100%;"><span>' + title + '</span>' + badge + '</h3>';
+            if (!series || series.length === 0) {
+                return '<div class="chart-box trend-box">' + head + '<div class="empty-state"><div class="icon">📡</div><p>' + t('no_data') + '</p></div></div>';
+            }
+            // Show only the minute part (HH:MM) on the axis to keep it tidy.
+            const labelOf = function(p){ var m = (p.minute || '').split(' '); return m.length > 1 ? m[1] : (p.minute || ''); };
+            return '<div class="chart-box trend-box">' + head +
+                buildTrendSvg(series, labelOf, '#10b981') + '</div>';
+        }
+
+        // buildTrendSvg renders an interactive area/line trend. `labelOf(point)`
+        // produces the x-axis label and tooltip caption; `color` is the line /
+        // area / focus colour. Hover surfaces a guideline, an enlarged focus dot
+        // and a floating tooltip with the selected bucket and its value.
+        function buildTrendSvg(series, labelOf, color) {
             const pts = series.slice();
             const W = 900, H = 280, padL = 48, padR = 20, padT = 20, padB = 36;
             const plotW = W - padL - padR, plotH = H - padT - padB;
@@ -2094,7 +2379,6 @@
             const x = function(i) { return padL + (n === 1 ? plotW / 2 : (i / (n - 1)) * plotW); };
             const y = function(c) { return padT + plotH - (c / maxCount) * plotH; };
 
-            // Horizontal grid lines + y-axis labels (5 steps).
             let grid = '';
             const steps = 4;
             for (let s = 0; s <= steps; s++) {
@@ -2106,27 +2390,362 @@
 
             const linePts = pts.map(function(p, i) { return x(i).toFixed(1) + ',' + y(p.count).toFixed(1); }).join(' ');
             const areaPts = x(0).toFixed(1) + ',' + (padT + plotH).toFixed(1) + ' ' + linePts + ' ' + x(n - 1).toFixed(1) + ',' + (padT + plotH).toFixed(1);
-            const color = chartColors[0];
 
             const dots = pts.map(function(p, i) {
-                return '<circle class="trend-dot" cx="' + x(i).toFixed(1) + '" cy="' + y(p.count).toFixed(1) + '" r="3" fill="' + color + '"><title>' + escapeHtml(p.date) + ': ' + p.count.toLocaleString(currentLang) + '</title></circle>';
+                return '<circle class="trend-dot" cx="' + x(i).toFixed(1) + '" cy="' + y(p.count).toFixed(1) + '" r="3" fill="' + color + '"></circle>';
             }).join('');
 
-            // X-axis labels: show at most ~8 evenly spaced dates to avoid clutter.
             const labelEvery = Math.max(1, Math.ceil(n / 8));
             let xLabels = '';
             for (let i = 0; i < n; i += labelEvery) {
-                xLabels += '<text class="trend-axis-label" x="' + x(i).toFixed(1) + '" y="' + (H - padB + 18) + '" text-anchor="middle">' + escapeHtml(pts[i].date) + '</text>';
+                xLabels += '<text class="trend-axis-label" x="' + x(i).toFixed(1) + '" y="' + (H - padB + 18) + '" text-anchor="middle">' + escapeHtml(labelOf(pts[i])) + '</text>';
             }
 
-            const svg = '<svg class="trend-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img">' +
+            // Transparent per-point hit bands drive the hover interaction.
+            let hits = '';
+            for (let i = 0; i < n; i++) {
+                const left = i === 0 ? padL : (x(i - 1) + x(i)) / 2;
+                const right = i === n - 1 ? (W - padR) : (x(i) + x(i + 1)) / 2;
+                hits += '<rect class="trend-hit" x="' + left.toFixed(1) + '" y="' + padT + '" width="' + Math.max(0, right - left).toFixed(1) + '" height="' + plotH +
+                    '" data-cx="' + x(i).toFixed(1) + '" data-cy="' + y(pts[i].count).toFixed(1) +
+                    '" data-label="' + escapeAttr(labelOf(pts[i])) + '" data-count="' + pts[i].count + '"></rect>';
+            }
+
+            // Hover overlay: guideline, focus dot, and tooltip (hidden by default).
+            const overlay =
+                '<line class="trend-hover-line" x1="0" y1="' + padT + '" x2="0" y2="' + (padT + plotH) + '"></line>' +
+                '<g class="trend-focus">' +
+                '<circle class="trend-focus-dot" r="5" fill="' + color + '" stroke="#fff" stroke-width="2" cx="0" cy="0"></circle>' +
+                '<g class="trend-tip" transform="translate(0,0)">' +
+                '<rect class="trend-tip-bg" rx="6" x="0" y="0" width="150" height="50"></rect>' +
+                '<text class="trend-tip-cap" x="10" y="16" style="font-size:10px;fill:var(--accent);font-weight:600;">' + escapeHtml(t('trend_select')) + '</text>' +
+                '<text class="trend-tip-date" x="10" y="31"></text>' +
+                '<text class="trend-tip-val" x="10" y="46"></text>' +
+                '</g></g>';
+
+            const geom = JSON.stringify({ padT: padT, plotH: plotH, W: W, padR: padR, color: color });
+            return '<svg class="trend-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" data-geom="' + escapeAttr(geom) + '">' +
                 grid +
                 '<polygon class="trend-area" points="' + areaPts + '" fill="' + color + '"></polygon>' +
                 '<polyline class="trend-line" points="' + linePts + '" stroke="' + color + '"></polyline>' +
-                dots + xLabels +
+                dots + xLabels + overlay + hits +
                 '</svg>';
+        }
 
-            return '<div class="chart-box trend-box"><h3>' + title + '</h3>' + svg + '</div>';
+        // wireOverviewInteractions attaches hover behaviour to every donut and
+        // trend chart found inside `host` (the preset grid or a custom widget).
+        function wireOverviewInteractions(host) {
+            if (!host) return;
+            host.querySelectorAll('.donut-chart').forEach(wireDonut);
+            host.querySelectorAll('.trend-svg').forEach(wireTrend);
+        }
+
+        function wireDonut(chart) {
+            const svg = chart.querySelector('.donut-svg');
+            if (!svg) return;
+            const valEl = svg.querySelector('.donut-center-value');
+            const labEl = svg.querySelector('.donut-center-label');
+            const segs = chart.querySelectorAll('.donut-seg');
+            const legends = chart.querySelectorAll('.donut-legend-item');
+            function focus(i) {
+                const seg = chart.querySelector('.donut-seg[data-i="' + i + '"]');
+                if (!seg) return;
+                svg.classList.add('is-hovering');
+                segs.forEach(function(s){ s.classList.toggle('hovered', s === seg); });
+                legends.forEach(function(l){ l.style.fontWeight = (l.getAttribute('data-i') === String(i)) ? '700' : ''; });
+                if (valEl) valEl.textContent = seg.getAttribute('data-pct') + '%';
+                if (labEl) labEl.textContent = (seg.getAttribute('data-name') || '').slice(0, 14);
+            }
+            function reset() {
+                svg.classList.remove('is-hovering');
+                segs.forEach(function(s){ s.classList.remove('hovered'); });
+                legends.forEach(function(l){ l.style.fontWeight = ''; });
+                if (valEl) valEl.textContent = svg.getAttribute('data-def-val') || '';
+                if (labEl) labEl.textContent = svg.getAttribute('data-def-label') || '';
+            }
+            segs.forEach(function(s){
+                const i = s.getAttribute('data-i');
+                s.addEventListener('mouseenter', function(){ focus(i); });
+            });
+            legends.forEach(function(l){
+                const i = l.getAttribute('data-i');
+                l.addEventListener('mouseenter', function(){ focus(i); });
+            });
+            chart.addEventListener('mouseleave', reset);
+        }
+
+        function wireTrend(svg) {
+            let geom = {};
+            try { geom = JSON.parse(svg.getAttribute('data-geom') || '{}'); } catch (e) {}
+            const line = svg.querySelector('.trend-hover-line');
+            const focus = svg.querySelector('.trend-focus');
+            const focusDot = svg.querySelector('.trend-focus-dot');
+            const tip = svg.querySelector('.trend-tip');
+            const tipDate = svg.querySelector('.trend-tip-date');
+            const tipVal = svg.querySelector('.trend-tip-val');
+            const tipW = 150, tipH = 50;
+            svg.querySelectorAll('.trend-hit').forEach(function(hit) {
+                hit.addEventListener('mouseenter', function() {
+                    const cx = parseFloat(hit.getAttribute('data-cx'));
+                    const cy = parseFloat(hit.getAttribute('data-cy'));
+                    const label = hit.getAttribute('data-label') || '';
+                    const count = parseInt(hit.getAttribute('data-count'), 10) || 0;
+                    if (line) { line.setAttribute('x1', cx); line.setAttribute('x2', cx); line.style.opacity = 1; }
+                    if (focusDot) { focusDot.setAttribute('cx', cx); focusDot.setAttribute('cy', cy); }
+                    if (tip) {
+                        // Clamp the tooltip so it stays inside the plot area.
+                        let tx = cx + 12;
+                        if (tx + tipW > (geom.W - geom.padR)) tx = cx - tipW - 12;
+                        if (tx < 4) tx = 4;
+                        let ty = cy - tipH - 8;
+                        if (ty < geom.padT) ty = cy + 10;
+                        tip.setAttribute('transform', 'translate(' + tx.toFixed(1) + ',' + ty.toFixed(1) + ')');
+                    }
+                    if (tipDate) tipDate.textContent = label;
+                    if (tipVal) tipVal.textContent = count.toLocaleString(currentLang);
+                    if (focus) focus.style.opacity = 1;
+                });
+            });
+            svg.addEventListener('mouseleave', function() {
+                if (line) line.style.opacity = 0;
+                if (focus) focus.style.opacity = 0;
+            });
+        }
+
+        // ---- Realtime trend (live per-minute) -------------------------------
+
+        async function loadRealtime() {
+            const params = getFilters();
+            params.set('minutes', realtimeMinutes);
+            try {
+                const res = await authFetch('/api/realtime?' + params.toString());
+                if (!res.ok) return;
+                const data = await res.json();
+                lastRealtimeData = data.series || [];
+                if (chartViewMode === 'realtime') {
+                    renderCharts(lastStatsData || {});
+                } else if (chartViewMode === 'custom') {
+                    renderCustomLayout();
+                }
+            } catch (e) {
+                console.error('Failed to load realtime:', e);
+            }
+        }
+
+        // syncRealtimeTimer starts or stops the polling loop based on whether a
+        // realtime view is currently on screen (the realtime preset, or a custom
+        // layout containing a realtime widget) and the overview tab is visible.
+        function syncRealtimeTimer() {
+            const overviewVisible = document.getElementById('tab-overview').style.display !== 'none';
+            const wantRealtime = overviewVisible && (chartViewMode === 'realtime' ||
+                (chartViewMode === 'custom' && layoutNeedsRealtime()));
+            if (wantRealtime && !realtimeTimer) {
+                realtimeTimer = setInterval(loadRealtime, 5000);
+            } else if (!wantRealtime && realtimeTimer) {
+                clearInterval(realtimeTimer);
+                realtimeTimer = null;
+            }
+        }
+
+        // ---- Custom overview layout (composable dashboard) ------------------
+        // Persisted shape: { cols: number, widgets: [{id,type,metric,w,h}] }.
+        // type: 'realtime' | 'trend' | 'bar' | 'donut'; metric applies to
+        // bar/donut and keys into METRICS. w/h are grid-cell spans.
+
+        const LAYOUT_KEY = 'overviewLayout';
+        let widgetSeq = 1;
+
+        function defaultLayout() {
+            return {
+                cols: 4,
+                widgets: [
+                    { id: 'w' + (widgetSeq++), type: 'realtime', w: 4, h: 2 },
+                    { id: 'w' + (widgetSeq++), type: 'bar', metric: 'paths', w: 2, h: 2 },
+                    { id: 'w' + (widgetSeq++), type: 'donut', metric: 'status', w: 2, h: 2 },
+                    { id: 'w' + (widgetSeq++), type: 'bar', metric: 'ips', w: 2, h: 2 },
+                    { id: 'w' + (widgetSeq++), type: 'donut', metric: 'browsers', w: 2, h: 2 }
+                ]
+            };
+        }
+
+        let customLayout = loadLayout();
+
+        function loadLayout() {
+            try {
+                const raw = localStorage.getItem(LAYOUT_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    if (parsed && Array.isArray(parsed.widgets)) {
+                        // Keep widgetSeq ahead of any restored ids.
+                        parsed.widgets.forEach(function(w) {
+                            const m = /^w(\d+)$/.exec(w.id || '');
+                            if (m) widgetSeq = Math.max(widgetSeq, parseInt(m[1], 10) + 1);
+                        });
+                        parsed.cols = clampCols(parsed.cols);
+                        return parsed;
+                    }
+                }
+            } catch (e) {}
+            return defaultLayout();
+        }
+
+        function saveLayout() {
+            try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(customLayout)); } catch (e) {}
+        }
+
+        function clampCols(c) { c = parseInt(c, 10) || 4; return Math.min(6, Math.max(2, c)); }
+        function clampSpan(v, max) { v = parseInt(v, 10) || 1; return Math.min(max, Math.max(1, v)); }
+
+        function layoutNeedsRealtime() {
+            return customLayout.widgets.some(function(w) { return w.type === 'realtime'; });
+        }
+
+        function widgetTitle(w) {
+            if (w.type === 'realtime') return '🟢 ' + t('chart_realtime');
+            if (w.type === 'trend') return '📈 ' + t('chart_trend');
+            const m = METRICS[w.metric] || METRICS.paths;
+            return m.icon + ' ' + t(m.titleKey);
+        }
+
+        function renderWidgetBody(w) {
+            if (w.type === 'realtime') return renderRealtimeChart(lastRealtimeData);
+            if (w.type === 'trend') return renderTrendChart('📈', 'chart_trend', (lastStatsData || {}).requests_per_day);
+            const m = METRICS[w.metric] || METRICS.paths;
+            const items = m.get(lastStatsData || {});
+            const gi = Object.keys(METRICS).indexOf(w.metric);
+            const render = w.type === 'donut' ? renderDonutChart : renderBarChart;
+            return render(m.icon, m.titleKey, items, gi < 0 ? 0 : gi);
+        }
+
+        function renderCustomLayout() {
+            const host = document.getElementById('customLayout');
+            const cols = clampCols(customLayout.cols);
+            customLayout.cols = cols;
+            const sel = document.getElementById('layoutCols');
+            if (sel) sel.value = String(cols);
+            host.style.gridTemplateColumns = 'repeat(' + cols + ', minmax(0, 1fr))';
+
+            if (!customLayout.widgets.length) {
+                host.innerHTML = '<div class="empty-state custom-empty"><div class="icon">🧩</div><p>' + t('layout_empty') + '</p></div>';
+                return;
+            }
+
+            host.innerHTML = customLayout.widgets.map(function(w) {
+                const cw = clampSpan(w.w, cols), ch = clampSpan(w.h, 6);
+                w.w = cw; w.h = ch;
+                return '<div class="widget" draggable="true" data-id="' + w.id + '"' +
+                    ' style="grid-column: span ' + cw + '; grid-row: span ' + ch + ';">' +
+                    '<div class="widget-head">' +
+                    '<span class="widget-grip" aria-hidden="true">⠿</span>' +
+                    '<span class="widget-title" title="' + escapeAttr(widgetTitle(w)) + '">' + escapeHtml(widgetTitle(w)) + '</span>' +
+                    '<span class="widget-ctrls">' +
+                    '<button class="w-btn" title="' + escapeAttr(t('widget_narrower')) + '" onclick="resizeWidget(\'' + w.id + '\',\'w\',-1)">◀</button>' +
+                    '<button class="w-btn" title="' + escapeAttr(t('widget_wider')) + '" onclick="resizeWidget(\'' + w.id + '\',\'w\',1)">▶</button>' +
+                    '<button class="w-btn" title="' + escapeAttr(t('widget_shorter')) + '" onclick="resizeWidget(\'' + w.id + '\',\'h\',-1)">▲</button>' +
+                    '<button class="w-btn" title="' + escapeAttr(t('widget_taller')) + '" onclick="resizeWidget(\'' + w.id + '\',\'h\',1)">▼</button>' +
+                    '<button class="w-btn danger" title="' + escapeAttr(t('widget_remove')) + '" onclick="removeWidget(\'' + w.id + '\')">✕</button>' +
+                    '</span></div>' +
+                    '<div class="widget-body">' + renderWidgetBody(w) + '</div>' +
+                    '</div>';
+            }).join('');
+
+            wireOverviewInteractions(host);
+            wireWidgetDragDrop(host);
+        }
+
+        function resizeWidget(id, dim, delta) {
+            const w = customLayout.widgets.find(function(x){ return x.id === id; });
+            if (!w) return;
+            if (dim === 'w') w.w = clampSpan((w.w || 1) + delta, clampCols(customLayout.cols));
+            else w.h = clampSpan((w.h || 1) + delta, 6);
+            saveLayout();
+            renderCustomLayout();
+        }
+
+        function removeWidget(id) {
+            customLayout.widgets = customLayout.widgets.filter(function(x){ return x.id !== id; });
+            saveLayout();
+            renderCustomLayout();
+            syncRealtimeTimer();
+        }
+
+        function setLayoutCols(v) {
+            customLayout.cols = clampCols(v);
+            saveLayout();
+            renderCustomLayout();
+        }
+
+        function resetLayout() {
+            customLayout = defaultLayout();
+            saveLayout();
+            renderCustomLayout();
+            syncRealtimeTimer();
+            if (layoutNeedsRealtime()) loadRealtime();
+        }
+
+        // HTML5 drag-and-drop reordering of widgets.
+        let dragWidgetId = null;
+        function wireWidgetDragDrop(host) {
+            host.querySelectorAll('.widget').forEach(function(el) {
+                el.addEventListener('dragstart', function(e) {
+                    dragWidgetId = el.getAttribute('data-id');
+                    el.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    try { e.dataTransfer.setData('text/plain', dragWidgetId); } catch (_) {}
+                });
+                el.addEventListener('dragend', function() {
+                    dragWidgetId = null;
+                    el.classList.remove('dragging');
+                    host.querySelectorAll('.widget').forEach(function(w){ w.classList.remove('drag-over'); });
+                });
+                el.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    if (el.getAttribute('data-id') !== dragWidgetId) el.classList.add('drag-over');
+                });
+                el.addEventListener('dragleave', function() { el.classList.remove('drag-over'); });
+                el.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    el.classList.remove('drag-over');
+                    const targetId = el.getAttribute('data-id');
+                    if (!dragWidgetId || dragWidgetId === targetId) return;
+                    const ws = customLayout.widgets;
+                    const from = ws.findIndex(function(x){ return x.id === dragWidgetId; });
+                    const to = ws.findIndex(function(x){ return x.id === targetId; });
+                    if (from < 0 || to < 0) return;
+                    const moved = ws.splice(from, 1)[0];
+                    ws.splice(to, 0, moved);
+                    saveLayout();
+                    renderCustomLayout();
+                });
+            });
+        }
+
+        // Widget picker modal.
+        function openWidgetPicker() {
+            document.getElementById('widgetPicker').classList.remove('hidden');
+            onWidgetTypeChange();
+        }
+        function closeWidgetPicker() {
+            document.getElementById('widgetPicker').classList.add('hidden');
+        }
+        function onWidgetTypeChange() {
+            const type = document.getElementById('widgetType').value;
+            const metricField = document.getElementById('widgetMetricField');
+            metricField.style.display = (type === 'bar' || type === 'donut') ? '' : 'none';
+        }
+        function confirmAddWidget() {
+            const type = document.getElementById('widgetType').value;
+            const metric = document.getElementById('widgetMetric').value;
+            const w = { id: 'w' + (widgetSeq++), type: type, w: 2, h: 2 };
+            if (type === 'realtime' || type === 'trend') w.w = clampCols(customLayout.cols);
+            if (type === 'bar' || type === 'donut') w.metric = metric;
+            customLayout.widgets.push(w);
+            saveLayout();
+            closeWidgetPicker();
+            renderCustomLayout();
+            syncRealtimeTimer();
+            if (w.type === 'realtime') loadRealtime();
         }
 
         function getStatusClass(status) {
@@ -2491,6 +3110,10 @@
                 document.getElementById('loginPassword').value = '';
                 loadStats();
                 loadGeo();
+                if (chartViewMode === 'realtime' || (chartViewMode === 'custom' && layoutNeedsRealtime())) {
+                    loadRealtime();
+                }
+                syncRealtimeTimer();
                 return false;
             } catch (e) {
                 errEl.textContent = t('auth_invalid');
@@ -2582,22 +3205,29 @@
             }
         }
 
-        async function toggleUserDisabled(id, disabled) {
-            await authFetch('/api/users/' + id, {
+        async function patchUser(id, payload) {
+            const errEl = document.getElementById('usersError');
+            errEl.textContent = '';
+            const res = await authFetch('/api/users/' + id, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ disabled: disabled })
+                body: JSON.stringify(payload)
             });
+            if (!res.ok) {
+                const data = await res.json().catch(function() { return {}; });
+                // Surface server-side guards (e.g. refusing to demote/disable
+                // the last administrator) instead of silently doing nothing.
+                errEl.textContent = data.error || 'error';
+            }
             loadUsers();
         }
 
+        async function toggleUserDisabled(id, disabled) {
+            await patchUser(id, { disabled: disabled });
+        }
+
         async function setUserRole(id, role) {
-            await authFetch('/api/users/' + id, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ role: role })
-            });
-            loadUsers();
+            await patchUser(id, { role: role });
         }
 
         async function deleteUser(id) {
@@ -2954,7 +3584,14 @@
             // Always start with the login overlay until /me confirms a session.
             showLogin();
             checkSession().then(function(ok) {
-                if (ok) { loadStats(); loadGeo(); }
+                if (ok) {
+                    loadStats();
+                    loadGeo();
+                    if (chartViewMode === 'realtime' || (chartViewMode === 'custom' && layoutNeedsRealtime())) {
+                        loadRealtime();
+                    }
+                    syncRealtimeTimer();
+                }
             });
         });
     </script>
