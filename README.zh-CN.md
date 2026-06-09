@@ -2,169 +2,147 @@
 
 🌐 [English](README.md) | [繁體中文](README.zh-TW.md) | **简体中文** | [日本語](README.ja.md)
 
-一个轻量级的 Web 服务器（Nginx / Apache）访问日志分析工具，提供统计报表和实时监控功能，并支持自定义日志格式。
+看看是谁在访问你的网站——数据完全留在自己手上，不经过任何第三方。
+
+Web Request Attribution 会读取你的 Web 服务器（Nginx / Apache）访问日志，
+变成一目了然的仪表板：访问趋势、热门页面、浏览器、状态码、请求来源世界
+地图等等。它只是一个小小的程序，所有功能都内置——不需要数据库服务器、
+不需要另外搭前端，也不用再安装任何东西。
 
 ## 截图预览
 
-| Dark Mode | Light Mode |
+| 深色模式 | 浅色模式 |
 |:-:|:-:|
 | ![Dark Mode](docs/screenshot-dark.png) | ![Light Mode](docs/screenshot-light.png) |
 
-## 特点
+## 特色
 
-- 🚀 **单一二进制文件** - Go 编译为单一可执行文件，无需额外 runtime
-- 📊 **内置 Web GUI** - 统计报表直接嵌入二进制文件中，无需额外前端部署
-- 🔍 **多维度筛选** - 支持按 IP、路径、域名、查询参数、OS、浏览器、状态码等筛选
-- 🔑 **关键词追踪** - 自动追踪配置的关键词出现次数
-- 🗺️ **IP 位置与世界地图** - 将请求来源解析到国家（免费、无需 API 密钥），并在离线世界地图上展示
-- 📡 **实时监控** - 自动监控日志文件新增内容
-- 🔐 **灵活账户** - 可采用无账户模式开放使用，或强制登录；缺少密码时会自动生成并输出至后台日志
-- 🐳 **一键部署** - 支持 Docker / Docker Compose 部署
-- 💾 **SQLite 存储** - 轻量级数据库，无需外部数据库服务
-- 🌐 **多语言界面** - Web GUI 支持简体中文、繁体中文、英文、日文
+- 🚀 **单一文件、零依赖** — 下载一个程序就能直接运行
+- 📊 **内置仪表板** — 打开浏览器，统计报表就在眼前
+- 🗺️ **世界地图** — 看请求来自哪些国家/地区（免费、无需 API 密钥）；鼠标悬停气泡即可查看详情
+- 📡 **实时更新** — 新的日志内容自动出现在仪表板上
+- 🔍 **强大筛选** — 按 IP、页面、域名、浏览器、操作系统、状态码、关键词、日期深入分析；条件前加 `!` 即可排除（支持多个排除条件）
+- 🔐 **可选登录** — 自己电脑上可开放使用，放上服务器可强制账号登录
+- 🌐 **4 种语言** — 简体中文、繁體中文、English、日本語
+- 🐳 **支持 Docker** — 一行命令完成部署
 
-## 快速开始
+## 三步开始使用
 
-### 方式一：从 Release 下载
+**1. 下载**：从[最新 Release](https://github.com/moehoshio/WebRequestAttribution/releases/latest) 下载适合你系统的文件：
 
-从 [最新 GitHub Release](https://github.com/moehoshio/WebRequestAttribution/releases/latest) 下载适合平台的预编译二进制文件：
-
-| 平台 | 文件 |
+| 你的系统 | 下载文件 |
 |---|---|
-| Linux x86_64 | `web-req-attr-linux-amd64` |
-| Linux ARM64 | `web-req-attr-linux-arm64` |
-| macOS Intel | `web-req-attr-darwin-amd64` |
-| macOS Apple Silicon | `web-req-attr-darwin-arm64` |
-| Windows x86_64 | `web-req-attr-windows-amd64.exe` |
+| Linux（x86_64） | `web-req-attr-linux-amd64` |
+| Linux（ARM，如树莓派） | `web-req-attr-linux-arm64` |
+| macOS（Intel） | `web-req-attr-darwin-amd64` |
+| macOS（Apple Silicon） | `web-req-attr-darwin-arm64` |
+| Windows | `web-req-attr-windows-amd64.exe` |
+
+**2. 运行**（Linux/macOS；Windows 直接双击 `.exe` 即可）：
 
 ```bash
-# Linux/macOS 示例
 chmod +x web-req-attr-linux-amd64
-./web-req-attr-linux-amd64 -config config.json
-
-# 导入既有日志
-./web-req-attr-linux-amd64 -import /var/log/nginx/access.log
+./web-req-attr-linux-amd64
 ```
 
-### 方式二：从源码编译
+**3. 打开浏览器**访问 <http://localhost:8080>。完成！🎉
 
-```bash
-go build -o web-req-attr ./cmd/
-./web-req-attr -config config.json
-```
+第一次运行时程序会自动创建 `config.json`。之后要监控哪些日志文件、追踪
+哪些关键词，都可以直接在浏览器的「**设置**」标签页里完成。
 
-### 方式三：Docker 部署
+## 指向你的日志文件
 
-```bash
-# 一键启动
-docker-compose up -d
-
-# 或手动 Docker
-docker build -t web-req-attr .
-docker run -d \
-  -p 8080:8080 \
-  -v /var/log/nginx:/var/log/nginx:ro \
-  -v ./data:/app/data \
-  web-req-attr
-```
-
-## 配置
-
-创建 `config.json`：
+要分析网站流量，只需要告诉它访问日志在哪里。可以在浏览器的「**设置**」
+标签页添加日志来源，或编辑 `config.json`：
 
 ```json
 {
   "listen_addr": ":8080",
   "db_path": "./data/stats.db",
   "watch": true,
-  "keywords": ["login", "admin", "api", "search"],
   "sources": [
     {
-      "name": "nginx-main",
+      "name": "my-website",
       "type": "file",
       "path": "/var/log/nginx/access.log",
-      "read_compressed": false,
       "format": { "engine": "nginx", "preset": "combined" }
     }
   ]
 }
 ```
 
-> 详细的来源字段（`type` / `format.engine` / `format.preset` / `format.pattern` / `read_compressed` / `pattern` / `recursive` 等）以及自定义格式变量列表，请参考英文 [README](README.md#configuration) 与 [`docs/TODO.md`](docs/TODO.md)。已支持 **Nginx**、**Apache**（读取日志文件）、**自定义格式**、`.gz` 压缩日志，以及 **目录扫描** (`type: "dir"` + 文件名 glob，自动处理日志轮替)。
+通俗解释：
 
+- `listen_addr` — 仪表板使用的端口（`:8080` → http://localhost:8080）
+- `db_path` — 统计数据的存放位置（就是一个文件）
+- `watch` — 持续读取新增的日志内容
+- `sources` — 要读取的日志文件。上面是 Nginx 的标准配置；Apache 请改用
+  `"engine": "apache"`。
 
-#### Syslog 模式配置示例
+编辑后重启程序，流量就会出现在仪表板上。带注释的完整示例请见
+[`config.example.json`](config.example.json)，所有选项的说明请见
+[配置参考文档](docs/CONFIGURATION.md)（英文）。
 
-Nginx 配置加入：
-```nginx
-access_log syslog:server=127.0.0.1:1514,facility=local7,tag=nginx combined;
+### 导入既有的旧日志
+
+监控模式只会读取*新增*的内容。想载入既有的历史日志，运行一次：
+
+```bash
+./web-req-attr-linux-amd64 -import /var/log/nginx/access.log
 ```
 
-## API 接口
+## 启用登录
 
-### GET /api/stats
+默认情况下（尚未创建任何账号时），任何打得开页面的人都能使用仪表板——
+在自己电脑上没问题，但放上公开服务器**不行**。要强制登录，请在首次
+启动前于 `config.json` 加入：
 
-获取统计摘要，支持以下查询参数筛选：
-
-| 参数 | 说明 |
-|---|---|
-| `start` | 开始日期 (YYYY-MM-DD) |
-| `end` | 结束日期 (YYYY-MM-DD) |
-| `ip` | IP 地址 (模糊搜索) |
-| `path` | 路径 (模糊搜索) |
-| `domain` | 域名 (模糊搜索) |
-| `query` | 查询字符串 (模糊搜索) |
-| `method` | HTTP 方法 |
-| `status` | HTTP 状态码 |
-| `os` | 操作系统 |
-| `browser` | 浏览器 |
-| `keyword` | 关键词 |
-
-**响应示例：**
 ```json
-{
-  "total_requests": 12345,
-  "top_paths": [{"name": "/api/users", "count": 500}],
-  "top_ips": [{"name": "192.168.1.1", "count": 300}],
-  "top_domains": [{"name": "example.com", "count": 200}],
-  "top_os": [{"name": "Windows", "count": 5000}],
-  "top_browsers": [{"name": "Chrome", "count": 8000}],
-  "top_keywords": [{"name": "api", "count": 1500}],
-  "status_codes": [{"name": "200", "count": 10000}],
-  "requests_per_day": [{"date": "2023-10-10", "count": 500}]
+"auth": {
+  "require_account": true
 }
 ```
 
-### GET /api/requests
+如果没有设置密码，程序会为 `admin` 用户生成一组随机密码并输出在启动
+信息中——用它登录后，再到「**用户**」标签页修改密码。更多细节请见
+[配置参考文档](docs/CONFIGURATION.md#authentication-auth)。
 
-获取请求列表（分页），额外支持：
+## 部署为常驻服务
 
-| 参数 | 说明 |
-|---|---|
-| `limit` | 每页条数 (默认 100) |
-| `offset` | 偏移量 |
-
-## 支持的日志格式
-
-### Combined (默认)
-```
-$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
-```
-
-### Virtual Host Combined
-```
-$host $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
-```
-
-## 开发
+想在服务器上长期运行，**[部署教程](docs/DEPLOYMENT.md)**（英文）提供
+每种方式的逐步说明。Docker 的快速版本：
 
 ```bash
-# 运行测试
-go test ./...
-
-# 编译
-go build -o web-req-attr ./cmd/
+git clone https://github.com/moehoshio/WebRequestAttribution.git
+cd WebRequestAttribution
+cp config.example.json config.json   # 修改成指向你的日志
+docker-compose up -d
 ```
+
+教程中也涵盖不使用 Docker 的方式（systemd）、用 HTTPS 反向代理保护
+仪表板，以及如何安全地更新。
+
+## 常见问题
+
+**我的数据会外流吗？**
+不会。所有数据都存放在本机的单一 SQLite 文件。唯一可选的对外查询是
+世界地图用的 IP → 国家解析（可在「设置」中关闭）。
+
+**我的日志格式比较特殊，能解析吗？**
+可以。除了标准的 Nginx/Apache 格式外，也能用自定义 pattern 描述任意格式。
+请见[配置参考文档](docs/CONFIGURATION.md#custom-formats)。
+
+**世界地图显示「暂无地理位置数据」。**
+位置是后台逐步解析的——第一次导入后等几分钟再看看。
+
+## 文档
+
+| 文档 | 内容 |
+|---|---|
+| [部署教程](docs/DEPLOYMENT.md) | Docker、systemd、HTTPS、更新、疑难解答 |
+| [配置参考](docs/CONFIGURATION.md) | `config.json` 所有选项的完整说明 |
+| [开发者指南](docs/DEVELOPMENT.md) | 从源码编译、HTTP API、项目内部结构 |
+| [贡献指南](CONTRIBUTING.md) | 如何贡献代码 |
 
 ## 许可证
 

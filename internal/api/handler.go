@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/moehoshio/WebRequestAttribution/internal/storage"
@@ -120,21 +121,50 @@ func (h *Handler) handleRealtime(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]interface{}{"series": series})
 }
 
+// splitFilterValues splits a filter parameter into a positive match and
+// a list of exclusions. Each occurrence of the parameter may contain
+// several comma-separated terms; a term prefixed with "!" excludes
+// matching rows (several exclusions may be combined). The first
+// positive term wins — positive matches are single-valued, as before.
+func splitFilterValues(vals []string) (positive string, excludes []string) {
+	for _, raw := range vals {
+		for _, term := range strings.Split(raw, ",") {
+			term = strings.TrimSpace(term)
+			if term == "" {
+				continue
+			}
+			if strings.HasPrefix(term, "!") {
+				if v := strings.TrimSpace(term[1:]); v != "" {
+					excludes = append(excludes, v)
+				}
+			} else if positive == "" {
+				positive = term
+			}
+		}
+	}
+	return positive, excludes
+}
+
 func parseFilter(r *http.Request) storage.QueryFilter {
 	q := r.URL.Query()
-	f := storage.QueryFilter{
-		IP:      q.Get("ip"),
-		Path:    q.Get("path"),
-		Domain:  q.Get("domain"),
-		Method:  q.Get("method"),
-		OS:      q.Get("os"),
-		Browser: q.Get("browser"),
-		Query:   q.Get("query"),
-		Keyword: q.Get("keyword"),
-	}
+	f := storage.QueryFilter{}
+	f.IP, f.ExcludeIP = splitFilterValues(q["ip"])
+	f.Path, f.ExcludePath = splitFilterValues(q["path"])
+	f.Domain, f.ExcludeDomain = splitFilterValues(q["domain"])
+	f.Method, f.ExcludeMethod = splitFilterValues(q["method"])
+	f.OS, f.ExcludeOS = splitFilterValues(q["os"])
+	f.Browser, f.ExcludeBrowser = splitFilterValues(q["browser"])
+	f.Query, f.ExcludeQuery = splitFilterValues(q["query"])
+	f.Keyword, f.ExcludeKeyword = splitFilterValues(q["keyword"])
 
-	if v := q.Get("status"); v != "" {
-		f.Status, _ = strconv.Atoi(v)
+	statusPos, statusExcl := splitFilterValues(q["status"])
+	if statusPos != "" {
+		f.Status, _ = strconv.Atoi(statusPos)
+	}
+	for _, v := range statusExcl {
+		if n, err := strconv.Atoi(v); err == nil {
+			f.ExcludeStatus = append(f.ExcludeStatus, n)
+		}
 	}
 	if v := q.Get("limit"); v != "" {
 		f.Limit, _ = strconv.Atoi(v)

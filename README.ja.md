@@ -2,169 +2,157 @@
 
 🌐 [English](README.md) | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md) | **日本語**
 
-軽量な Web サーバー（Nginx / Apache）アクセスログ分析ツール。統計ダッシュボードとリアルタイム監視機能、カスタムログ形式に対応します。
+あなたのサイトに誰が来ているかを見える化——データは第三者に送られず、すべて手元に残ります。
+
+Web Request Attribution は Web サーバー（Nginx / Apache）のアクセスログを
+読み取り、見やすいダッシュボードに変換します：アクセス推移、人気ページ、
+ブラウザ、ステータスコード、リクエスト送信元の世界地図など。すべての機能が
+組み込まれた小さなプログラム 1 つだけ——データベースサーバーも、別途の
+フロントエンドも、追加のインストールも不要です。
 
 ## スクリーンショット
 
-| Dark Mode | Light Mode |
+| ダークモード | ライトモード |
 |:-:|:-:|
 | ![Dark Mode](docs/screenshot-dark.png) | ![Light Mode](docs/screenshot-light.png) |
 
-## 特徴
+## 特長
 
-- 🚀 **シングルバイナリ** - Go でコンパイルされた単一実行ファイル、追加ランタイム不要
-- 📊 **内蔵 Web GUI** - 統計ダッシュボードがバイナリに組み込まれており、追加のフロントエンドデプロイ不要
-- 🔍 **多次元フィルタリング** - IP、パス、ドメイン、クエリパラメータ、OS、ブラウザ、ステータスコード等でフィルタリング可能
-- 🔑 **キーワード追跡** - 設定したキーワードの出現回数を自動追跡
-- 🗺️ **IP 位置情報と世界地図** - リクエスト元を国単位で解決し（無料・APIキー不要）、オフラインの世界地図上に表示
-- 📡 **リアルタイム監視** - ログファイルの新規コンテンツを自動監視
-- 🔐 **柔軟なアカウント** - アカウントなしモードで公開運用も、ログイン必須も可能。パスワード未設定時は自動生成しサーバーログに出力
-- 🐳 **ワンクリックデプロイ** - Docker / Docker Compose デプロイ対応
-- 💾 **SQLite ストレージ** - 軽量データベース、外部データベースサービス不要
-- 🌐 **多言語インターフェース** - Web GUI は日本語、英語、簡体字中国語、繁体字中国語に対応
+- 🚀 **単一ファイル・依存なし** — プログラムを 1 つダウンロードするだけで動作
+- 📊 **内蔵ダッシュボード** — ブラウザを開けば統計がすぐ見られる
+- 🗺️ **世界地図** — リクエストがどの国・地域から来ているかを表示（無料・API キー不要）。バブルにマウスを乗せると詳細を表示
+- 📡 **リアルタイム更新** — 新しいログが自動的にダッシュボードへ反映
+- 🔍 **強力なフィルター** — IP、ページ、ドメイン、ブラウザ、OS、ステータスコード、キーワード、日付で絞り込み。値の先頭に `!` を付けると除外（複数の除外条件に対応）
+- 🔐 **ログインは任意** — 手元の PC ではオープンに、サーバー上ではアカウント必須に
+- 🌐 **4 言語対応** — 日本語、English、繁體中文、简体中文
+- 🐳 **Docker 対応** — コマンド 1 つでデプロイ
 
-## クイックスタート
+## 3 ステップで開始
 
-### 方法1：Release からダウンロード
+**1. ダウンロード**：[最新リリース](https://github.com/moehoshio/WebRequestAttribution/releases/latest)からお使いのシステムに合うファイルを入手：
 
-[最新の GitHub Release](https://github.com/moehoshio/WebRequestAttribution/releases/latest) から、利用するプラットフォーム向けのビルド済みバイナリをダウンロードしてください：
-
-| プラットフォーム | アセット |
+| システム | ファイル |
 |---|---|
-| Linux x86_64 | `web-req-attr-linux-amd64` |
-| Linux ARM64 | `web-req-attr-linux-arm64` |
-| macOS Intel | `web-req-attr-darwin-amd64` |
-| macOS Apple Silicon | `web-req-attr-darwin-arm64` |
-| Windows x86_64 | `web-req-attr-windows-amd64.exe` |
+| Linux（x86_64） | `web-req-attr-linux-amd64` |
+| Linux（ARM、Raspberry Pi など） | `web-req-attr-linux-arm64` |
+| macOS（Intel） | `web-req-attr-darwin-amd64` |
+| macOS（Apple Silicon） | `web-req-attr-darwin-arm64` |
+| Windows | `web-req-attr-windows-amd64.exe` |
+
+**2. 実行**（Linux/macOS。Windows は `.exe` をダブルクリックするだけ）：
 
 ```bash
-# Linux/macOS の例
 chmod +x web-req-attr-linux-amd64
-./web-req-attr-linux-amd64 -config config.json
-
-# 既存ログのインポート
-./web-req-attr-linux-amd64 -import /var/log/nginx/access.log
+./web-req-attr-linux-amd64
 ```
 
-### 方法2：ソースからビルド
+**3. ブラウザで** <http://localhost:8080> を開く。完了！🎉
 
-```bash
-go build -o web-req-attr ./cmd/
-./web-req-attr -config config.json
-```
+初回起動時に `config.json` が自動作成されます。どのログファイルを監視
+するか、どのキーワードを追跡するかは、ブラウザの「**設定**」タブから
+そのまま設定できます。
 
-### 方法3：Docker デプロイ
+## ログファイルを指定する
 
-```bash
-# ワンクリック起動
-docker-compose up -d
-
-# または手動 Docker
-docker build -t web-req-attr .
-docker run -d \
-  -p 8080:8080 \
-  -v /var/log/nginx:/var/log/nginx:ro \
-  -v ./data:/app/data \
-  web-req-attr
-```
-
-## 設定
-
-`config.json` を作成：
+サイトのトラフィックを分析するには、アクセスログの場所を教えるだけです。
+ブラウザの「**設定**」タブからログソースを追加するか、`config.json` を
+編集します：
 
 ```json
 {
   "listen_addr": ":8080",
   "db_path": "./data/stats.db",
   "watch": true,
-  "keywords": ["login", "admin", "api", "search"],
   "sources": [
     {
-      "name": "nginx-main",
+      "name": "my-website",
       "type": "file",
       "path": "/var/log/nginx/access.log",
-      "read_compressed": false,
       "format": { "engine": "nginx", "preset": "combined" }
     }
   ]
 }
 ```
 
-> 詳細なソースフィールド（`type` / `format.engine` / `format.preset` / `format.pattern` / `read_compressed` / `pattern` / `recursive` など）とカスタム形式の変数一覧については、英語版 [README](README.md#configuration) と [`docs/TODO.md`](docs/TODO.md) を参照してください。**Nginx**、**Apache**（ログファイル読み取り）、**カスタム形式**、`.gz` 圧縮ログ、および **ディレクトリ スキャン**（`type: "dir"` + ファイル名 glob、ローテーション自動対応）をサポートしています。
+各項目の意味：
 
+- `listen_addr` — ダッシュボードのポート（`:8080` → http://localhost:8080）
+- `db_path` — 統計データの保存先（1 つのファイル）
+- `watch` — 新しいログ行を継続的に読み取る
+- `sources` — 読み取るログファイル。上記は Nginx の標準設定。Apache の
+  場合は `"engine": "apache"` に変更してください。
 
-#### Syslog モード設定例
+編集後にプログラムを再起動すると、トラフィックがダッシュボードに表示
+されます。コメント付きの完全な例は
+[`config.example.json`](config.example.json)、全オプションの説明は
+[設定リファレンス](docs/CONFIGURATION.md)（英語）をご覧ください。
 
-Nginx 設定に追加：
-```nginx
-access_log syslog:server=127.0.0.1:1514,facility=local7,tag=nginx combined;
+### 既存の過去ログを取り込む
+
+監視モードは*新しく追記された*行のみを読み取ります。既存の履歴ログを
+取り込むには、一度だけ実行します：
+
+```bash
+./web-req-attr-linux-amd64 -import /var/log/nginx/access.log
 ```
 
-## API エンドポイント
+## ログインを有効にする
 
-### GET /api/stats
+初期状態（アカウント未作成）では、ページを開ける人なら誰でも
+ダッシュボードを操作できます——手元の PC なら問題ありませんが、公開
+サーバーでは**危険**です。ログインを必須にするには、初回起動の前に
+`config.json` へ追加します：
 
-統計サマリーを取得。以下のクエリパラメータでフィルタリング可能：
-
-| パラメータ | 説明 |
-|---|---|
-| `start` | 開始日 (YYYY-MM-DD) |
-| `end` | 終了日 (YYYY-MM-DD) |
-| `ip` | IP アドレス (あいまい検索) |
-| `path` | パス (あいまい検索) |
-| `domain` | ドメイン (あいまい検索) |
-| `query` | クエリ文字列 (あいまい検索) |
-| `method` | HTTP メソッド |
-| `status` | HTTP ステータスコード |
-| `os` | オペレーティングシステム |
-| `browser` | ブラウザ |
-| `keyword` | キーワード |
-
-**レスポンス例：**
 ```json
-{
-  "total_requests": 12345,
-  "top_paths": [{"name": "/api/users", "count": 500}],
-  "top_ips": [{"name": "192.168.1.1", "count": 300}],
-  "top_domains": [{"name": "example.com", "count": 200}],
-  "top_os": [{"name": "Windows", "count": 5000}],
-  "top_browsers": [{"name": "Chrome", "count": 8000}],
-  "top_keywords": [{"name": "api", "count": 1500}],
-  "status_codes": [{"name": "200", "count": 10000}],
-  "requests_per_day": [{"date": "2023-10-10", "count": 500}]
+"auth": {
+  "require_account": true
 }
 ```
 
-### GET /api/requests
+パスワードを設定しなかった場合、`admin` ユーザーのランダムなパスワードが
+生成され、起動ログに出力されます——それでサインインし、「**ユーザー**」
+タブから変更してください。詳細は
+[設定リファレンス](docs/CONFIGURATION.md#authentication-auth)を参照。
 
-リクエスト一覧を取得（ページネーション対応）、追加パラメータ：
+## サービスとしてデプロイする
 
-| パラメータ | 説明 |
-|---|---|
-| `limit` | ページあたりの件数 (デフォルト 100) |
-| `offset` | オフセット |
-
-## 対応ログフォーマット
-
-### Combined (デフォルト)
-```
-$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
-```
-
-### Virtual Host Combined
-```
-$host $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
-```
-
-## 開発
+サーバーで常時稼働させる方法は **[デプロイガイド](docs/DEPLOYMENT.md)**
+（英語）にステップごとの説明があります。Docker での簡易版：
 
 ```bash
-# テスト実行
-go test ./...
-
-# ビルド
-go build -o web-req-attr ./cmd/
+git clone https://github.com/moehoshio/WebRequestAttribution.git
+cd WebRequestAttribution
+cp config.example.json config.json   # 自分のログを指すように編集
+docker-compose up -d
 ```
+
+ガイドでは Docker を使わない方法（systemd）、HTTPS リバースプロキシでの
+保護、安全なアップデート方法も扱っています。
+
+## よくある質問
+
+**データが外部に送られることはありますか？**
+ありません。すべてローカルの単一 SQLite ファイルに保存されます。唯一の
+任意の外部問い合わせは世界地図用の IP → 国解決です（「設定」でオフに
+できます）。
+
+**特殊なログ形式でも解析できますか？**
+できます。標準の Nginx/Apache 形式に加え、カスタムパターンで任意の形式を
+記述できます。[設定リファレンス](docs/CONFIGURATION.md#custom-formats)を
+参照してください。
+
+**世界地図に「位置情報はまだありません」と表示されます。**
+位置はバックグラウンドで順次解決されます——初回インポート後、数分待って
+からご確認ください。
+
+## ドキュメント
+
+| ドキュメント | 内容 |
+|---|---|
+| [デプロイガイド](docs/DEPLOYMENT.md) | Docker、systemd、HTTPS、更新、トラブルシューティング |
+| [設定リファレンス](docs/CONFIGURATION.md) | `config.json` 全オプションの説明 |
+| [開発者ガイド](docs/DEVELOPMENT.md) | ソースからのビルド、HTTP API、内部構造 |
+| [コントリビューション](CONTRIBUTING.md) | コードへの貢献方法 |
 
 ## ライセンス
 

@@ -382,6 +382,20 @@ type QueryFilter struct {
 	Keyword   string
 	Limit     int
 	Offset    int
+
+	// Exclude* hold negative filter values: rows matching any of them
+	// are filtered out (conditions are AND-ed). Text fields use fuzzy
+	// (LIKE) matching like their positive counterparts; Method, Status,
+	// OS and Browser are exact.
+	ExcludeIP      []string
+	ExcludePath    []string
+	ExcludeDomain  []string
+	ExcludeMethod  []string
+	ExcludeStatus  []int
+	ExcludeOS      []string
+	ExcludeBrowser []string
+	ExcludeQuery   []string
+	ExcludeKeyword []string
 }
 
 // RequestRow is a single request record.
@@ -646,6 +660,32 @@ func buildWhere(f QueryFilter, prefix string) (string, []interface{}) {
 		args = append(args, "%"+f.Query+"%")
 	}
 
+	// Negative (exclude) conditions: each value adds one AND-ed clause,
+	// so several exclusions can apply at once.
+	notLike := func(col string, vals []string) {
+		for _, v := range vals {
+			conditions = append(conditions, prefix+col+" NOT LIKE ?")
+			args = append(args, "%"+v+"%")
+		}
+	}
+	notEq := func(col string, vals []string) {
+		for _, v := range vals {
+			conditions = append(conditions, prefix+col+" != ?")
+			args = append(args, v)
+		}
+	}
+	notLike("ip", f.ExcludeIP)
+	notLike("path", f.ExcludePath)
+	notLike("domain", f.ExcludeDomain)
+	notLike("query", f.ExcludeQuery)
+	notEq("method", f.ExcludeMethod)
+	notEq("os", f.ExcludeOS)
+	notEq("browser", f.ExcludeBrowser)
+	for _, v := range f.ExcludeStatus {
+		conditions = append(conditions, prefix+"status != ?")
+		args = append(args, v)
+	}
+
 	if len(conditions) == 0 {
 		return "", nil
 	}
@@ -659,6 +699,10 @@ func buildKeywordWhere(f QueryFilter) (string, []interface{}) {
 	if f.Keyword != "" {
 		conditions = append(conditions, "keyword LIKE ?")
 		args = append(args, "%"+f.Keyword+"%")
+	}
+	for _, v := range f.ExcludeKeyword {
+		conditions = append(conditions, "keyword NOT LIKE ?")
+		args = append(args, "%"+v+"%")
 	}
 
 	if len(conditions) == 0 {

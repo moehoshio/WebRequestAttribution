@@ -1,9 +1,35 @@
 {
+  "_readme": "Minimal setup: point 'sources' at your access log and start the server. Keys starting with _ are comments and are ignored. Full reference: docs/CONFIGURATION.md",
+
   "listen_addr": ":8080",
   "db_path": "./data/stats.db",
-  "allowed_log_roots": ["/var/log"],
+
+  "_comment_runtime": "watch / keywords / sources / geo.enabled are only read on the FIRST launch; afterwards edit them from the Settings tab in the web UI.",
+  "watch": true,
+  "keywords": ["login", "admin", "api", "search"],
+
+  "sources": [
+    {
+      "_comment": "The most common case: live-tail one Nginx access log.",
+      "name": "nginx-main",
+      "type": "file",
+      "path": "/var/log/nginx/access.log",
+      "format": { "engine": "nginx", "preset": "combined" }
+    },
+    {
+      "_comment": "Optional: watch a whole directory instead. Plain files are live-tailed; with read_compressed true, rotated *.gz archives are imported once. Delete this block if you don't need it.",
+      "name": "nginx-dir",
+      "type": "dir",
+      "path": "/var/log/nginx",
+      "pattern": "access*.log*",
+      "recursive": false,
+      "read_compressed": true,
+      "format": { "engine": "nginx", "preset": "combined" }
+    }
+  ],
+
+  "_comment_auth": "Without any account, anyone reaching the page is admin (fine on localhost). bootstrap_admin seeds the first login account; require_account true forces login from the very first start (a random admin password is printed to the server log if none is set). Set cookie_secure true when behind HTTPS.",
   "auth": {
-    "_comment": "Leave bootstrap_admin out (and require_account false) to run in no-account mode: anyone reaching the dashboard acts as admin until the first account is created from the Users tab. Set require_account true to force login; if no account exists at startup a random admin password is generated and printed to the server log.",
     "bootstrap_admin": {
       "username": "admin",
       "password": "change-me-on-first-login"
@@ -13,37 +39,11 @@
     "cookie_secure": false
   },
 
-  "_comment_geo": "IP geolocation powers the world map. enabled defaults to true; set it false to disable all external lookups. endpoint overrides the free provider URL template ({ip} is substituted) and may be left out to use the built-in ip-api.com default. The enabled flag is also runtime-tunable from the Settings panel.",
+  "_comment_geo": "Powers the world map: source IPs are resolved to a country in the background via the free ip-api.com (no key needed). Set enabled false to disable all external lookups.",
   "geo": {
     "enabled": true
   },
 
-  "_comment": "The fields below are runtime-tunable: they are only read on the very first launch (to seed the runtime_config row) and edited via the Settings panel thereafter.",
-  "watch": true,
-  "keywords": ["login", "admin", "api", "search"],
-  "sources": [
-    {
-      "name": "nginx-main",
-      "type": "file",
-      "path": "/var/log/nginx/access.log",
-      "read_compressed": false,
-      "format": {
-        "engine": "nginx",
-        "preset": "combined"
-      }
-    },
-    {
-      "_comment": "Example dir source: scans /var/log/nginx for access*.log* files (live tails plain files, one-shot imports .gz archives when read_compressed is true).",
-      "name": "nginx-dir",
-      "type": "dir",
-      "path": "/var/log/nginx",
-      "pattern": "access*.log*",
-      "recursive": false,
-      "read_compressed": true,
-      "format": {
-        "engine": "nginx",
-        "preset": "combined"
-      }
-    }
-  ]
+  "_comment_roots": "Sources added later from the Settings UI may only point inside these directories.",
+  "allowed_log_roots": ["/var/log"]
 }
