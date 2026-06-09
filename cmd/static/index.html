@@ -295,6 +295,12 @@
             padding-top: 6px;
         }
 
+        .filter-hint {
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
         .btn {
             padding: 10px 24px;
             border: none;
@@ -792,7 +798,12 @@
         .map-graticule { stroke: var(--border); stroke-width: 1; fill: none; }
         .map-land { fill: var(--text-muted); opacity: 0.16; stroke: var(--text-muted); stroke-opacity: 0.25; stroke-width: 0.5; }
         .map-marker { fill: var(--accent); fill-opacity: 0.55; stroke: var(--accent-hover); stroke-width: 1; cursor: pointer; transition: fill-opacity 0.15s ease; }
-        .map-marker:hover { fill-opacity: 0.85; }
+        .map-marker:hover, .map-marker.hovered { fill-opacity: 0.9; stroke-width: 1.5; }
+        /* Map hover tooltip — same look as the trend chart's floating label. */
+        .map-tooltip { position: absolute; left: 0; top: 0; pointer-events: none; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; box-shadow: var(--shadow); opacity: 0; transition: opacity 0.12s ease; white-space: nowrap; z-index: 5; }
+        .map-tooltip .cap { display: block; font-size: 10px; font-weight: 600; color: var(--accent); }
+        .map-tooltip .name { display: block; font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+        .map-tooltip .val { display: block; font-size: 13px; font-weight: 700; color: var(--text-primary); margin-top: 2px; }
         .map-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
         .map-legend .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg-secondary); font-size: 13px; }
         .map-legend .chip b { color: var(--accent-hover); }
@@ -1085,6 +1096,11 @@
                             <option value="iOS">iOS</option>
                             <option value="Android">Android</option>
                             <option value="Other" data-i18n="other"></option>
+                            <option value="!Windows">✕ Windows</option>
+                            <option value="!macOS">✕ macOS</option>
+                            <option value="!Linux">✕ Linux</option>
+                            <option value="!iOS">✕ iOS</option>
+                            <option value="!Android">✕ Android</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -1098,11 +1114,17 @@
                             <option value="Opera">Opera</option>
                             <option value="Bot">Bot</option>
                             <option value="Other" data-i18n="other"></option>
+                            <option value="!Chrome">✕ Chrome</option>
+                            <option value="!Firefox">✕ Firefox</option>
+                            <option value="!Safari">✕ Safari</option>
+                            <option value="!Edge">✕ Edge</option>
+                            <option value="!Opera">✕ Opera</option>
+                            <option value="!Bot">✕ Bot</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label data-i18n="status_code"></label>
-                        <input type="number" id="filterStatus" data-i18n-placeholder="status_placeholder">
+                        <input type="text" id="filterStatus" inputmode="numeric" data-i18n-placeholder="status_placeholder">
                     </div>
                     <div class="filter-group">
                         <label data-i18n="keyword"></label>
@@ -1113,6 +1135,7 @@
                         <button class="btn btn-secondary" onclick="clearFilters()" data-i18n="clear"></button>
                     </div>
                 </div>
+                <p class="filter-hint" data-i18n="filter_exclude_hint"></p>
             </div>
         </div>
 
@@ -1165,11 +1188,11 @@
                             <th data-i18n="time"></th>
                             <th data-i18n="ip"></th>
                             <th data-i18n="country"></th>
+                            <th data-i18n="domain"></th>
                             <th data-i18n="method"></th>
                             <th data-i18n="path"></th>
                             <th data-i18n="query"></th>
                             <th data-i18n="status"></th>
-                            <th data-i18n="domain"></th>
                             <th data-i18n="os"></th>
                             <th data-i18n="browser"></th>
                             <th data-i18n="ua"></th>
@@ -1414,8 +1437,9 @@
                 path_placeholder: '例如 /api',
                 domain_placeholder: '例如 example.com',
                 query_placeholder: '例如 id=123',
-                status_placeholder: '例如 200',
+                status_placeholder: '例如 200 或 !404',
                 keyword_placeholder: '關鍵詞',
+                filter_exclude_hint: '提示：在條件前加 ! 可排除符合的請求（例如 !/health）；用逗號分隔可同時設定多個排除條件（例如 !/health, !/metrics）。',
                 tab_settings: '設定',
                 settings_bootstrap_title: '啟動設定（唯讀，需重新啟動）',
                 settings_bootstrap_hint: '這些欄位由 config.json 提供，修改後請點擊「重新啟動伺服器」。',
@@ -1546,8 +1570,9 @@
                 path_placeholder: 'e.g. /api',
                 domain_placeholder: 'e.g. example.com',
                 query_placeholder: 'e.g. id=123',
-                status_placeholder: 'e.g. 200',
+                status_placeholder: 'e.g. 200 or !404',
                 keyword_placeholder: 'keyword',
+                filter_exclude_hint: 'Tip: prefix a value with ! to exclude matches (e.g. !/health); separate multiple exclusions with commas (e.g. !/health, !/metrics).',
                 tab_settings: 'Settings',
                 settings_bootstrap_title: 'Bootstrap settings (read-only, restart required)',
                 settings_bootstrap_hint: 'These fields come from config.json; click “Restart server” after editing.',
@@ -1678,8 +1703,9 @@
                 path_placeholder: '例如 /api',
                 domain_placeholder: '例如 example.com',
                 query_placeholder: '例如 id=123',
-                status_placeholder: '例如 200',
+                status_placeholder: '例如 200 或 !404',
                 keyword_placeholder: '关键词',
+                filter_exclude_hint: '提示：在条件前加 ! 可排除匹配的请求（例如 !/health）；用逗号分隔可同时设置多个排除条件（例如 !/health, !/metrics）。',
                 tab_settings: '设置',
                 settings_bootstrap_title: '启动设置（只读，需重启）',
                 settings_bootstrap_hint: '这些字段来自 config.json，修改后请点击「重启服务器」。',
@@ -1810,8 +1836,9 @@
                 path_placeholder: '例: /api',
                 domain_placeholder: '例: example.com',
                 query_placeholder: '例: id=123',
-                status_placeholder: '例: 200',
+                status_placeholder: '例: 200 または !404',
                 keyword_placeholder: 'キーワード',
+                filter_exclude_hint: 'ヒント: 値の先頭に ! を付けると一致するリクエストを除外します（例: !/health）。カンマ区切りで複数の除外条件を同時に指定できます（例: !/health, !/metrics）。',
                 tab_settings: '設定',
                 settings_bootstrap_title: '起動設定（読み取り専用、再起動が必要）',
                 settings_bootstrap_hint: 'config.json から読み込まれます。変更後は「サーバー再起動」を押してください。',
@@ -2785,11 +2812,11 @@
                     '<td>' + new Date(r.timestamp).toLocaleString(currentLang) + '</td>' +
                     '<td><code>' + escapeHtml(r.ip) + '</code></td>' +
                     '<td>' + country + '</td>' +
+                    '<td>' + escapeHtml(r.domain || '-') + '</td>' +
                     '<td><strong>' + escapeHtml(r.method) + '</strong></td>' +
                     '<td title="' + escapeHtml(r.path) + '">' + escapeHtml(r.path.length > 40 ? r.path.slice(0, 40) + '…' : r.path) + '</td>' +
                     '<td title="' + escapeHtml(r.query || '') + '">' + (r.query ? escapeHtml(r.query.length > 20 ? r.query.slice(0, 20) + '…' : r.query) : '-') + '</td>' +
                     '<td><span class="status-badge ' + getStatusClass(r.status) + '">' + r.status + '</span></td>' +
-                    '<td>' + escapeHtml(r.domain || '-') + '</td>' +
                     '<td>' + escapeHtml(r.os) + '</td>' +
                     '<td>' + escapeHtml(r.browser) + '</td>' +
                     '<td title="' + escapeHtml(r.user_agent || '') + '">' + escapeHtml((r.user_agent || '').slice(0, 30)) + '…</td>' +
@@ -2894,18 +2921,54 @@
             const markers = countries.map(function(c) {
                 const x = projX(c.lon), y = projY(c.lat);
                 const r = 1.5 + Math.sqrt(c.count / maxCount) * 9;
-                const label = (c.country || c.country_code || t('geo_unknown')) + ' — ' + t('map_requests', { count: c.count.toLocaleString(currentLang) });
-                return '<circle class="map-marker" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + r.toFixed(1) + '"><title>' + escapeHtml(label) + '</title></circle>';
+                const name = c.country || c.country_code || t('geo_unknown');
+                return '<circle class="map-marker" cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + r.toFixed(1) +
+                    '" data-name="' + escapeAttr(name) + '" data-code="' + escapeAttr(c.country_code || '') +
+                    '" data-count="' + c.count + '"></circle>';
             }).join('');
 
             wrap.innerHTML = '<svg viewBox="0 0 ' + MAP_W + ' ' + MAP_H + '" role="img" aria-label="world map of request origins" preserveAspectRatio="xMidYMid meet">' +
                 '<rect x="0" y="0" width="' + MAP_W + '" height="' + MAP_H + '" fill="none"/>' +
                 land + grat + markers + '</svg>';
+            wireMapTooltip(wrap);
 
             legend.innerHTML = countries.slice(0, 12).map(function(c) {
                 const name = (c.country || c.country_code || t('geo_unknown'));
                 return '<span class="chip">' + countryFlag(c.country_code) + escapeHtml(name) + ' <b>' + c.count.toLocaleString(currentLang) + '</b></span>';
             }).join('');
+        }
+
+        // wireMapTooltip attaches a floating tooltip (mirroring the trend
+        // chart's hover label) to every marker on the world map: hovering a
+        // bubble highlights it and shows the country/region name with its
+        // request count, following the mouse and clamped to the map box.
+        function wireMapTooltip(wrap) {
+            const tip = document.createElement('div');
+            tip.className = 'map-tooltip';
+            wrap.appendChild(tip);
+            wrap.querySelectorAll('.map-marker').forEach(function(m) {
+                m.addEventListener('mouseenter', function() {
+                    m.classList.add('hovered');
+                    const count = parseInt(m.getAttribute('data-count'), 10) || 0;
+                    tip.innerHTML = '<span class="cap">' + escapeHtml(t('trend_select')) + '</span>' +
+                        '<span class="name">' + countryFlag(m.getAttribute('data-code') || '') + escapeHtml(m.getAttribute('data-name') || '') + '</span>' +
+                        '<span class="val">' + escapeHtml(t('map_requests', { count: count.toLocaleString(currentLang) })) + '</span>';
+                    tip.style.opacity = 1;
+                });
+                m.addEventListener('mousemove', function(ev) {
+                    const rect = wrap.getBoundingClientRect();
+                    let x = ev.clientX - rect.left + 14;
+                    let y = ev.clientY - rect.top + 14;
+                    if (x + tip.offsetWidth > rect.width - 4) x = ev.clientX - rect.left - tip.offsetWidth - 14;
+                    if (y + tip.offsetHeight > rect.height - 4) y = ev.clientY - rect.top - tip.offsetHeight - 14;
+                    tip.style.left = Math.max(0, x) + 'px';
+                    tip.style.top = Math.max(0, y) + 'px';
+                });
+                m.addEventListener('mouseleave', function() {
+                    m.classList.remove('hovered');
+                    tip.style.opacity = 0;
+                });
+            });
         }
 
         // ---- Auth (Phase 2) -------------------------------------------------
