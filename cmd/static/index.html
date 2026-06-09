@@ -704,6 +704,33 @@
             font-weight: 500;
         }
 
+        /* Jump-to-page control inside the pagination bar */
+        .page-jump {
+            display: inline-flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .page-jump input {
+            width: 80px;
+            padding: 10px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .page-jump input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .page-jump input::placeholder {
+            color: var(--text-muted);
+        }
+
         /* No data state */
         .empty-state {
             text-align: center;
@@ -1205,6 +1232,10 @@
                 <button class="btn btn-secondary" onclick="prevPage()"><span aria-hidden="true">←</span> <span data-i18n="prev_page"></span></button>
                 <span class="page-info" id="pageInfo"></span>
                 <button class="btn btn-secondary" onclick="nextPage()"><span data-i18n="next_page"></span> <span aria-hidden="true">→</span></button>
+                <span class="page-jump">
+                    <input type="number" id="pageJumpInput" min="1" step="1" data-i18n-placeholder="page_jump_placeholder" onkeydown="if(event.key==='Enter')jumpToPage()">
+                    <button class="btn btn-secondary" onclick="jumpToPage()" data-i18n="page_jump_go"></button>
+                </span>
             </div>
         </div>
 
@@ -1407,6 +1438,8 @@
                 status: '狀態',
                 prev_page: '上一頁',
                 next_page: '下一頁',
+                page_jump_placeholder: '頁碼',
+                page_jump_go: '跳轉',
                 total_requests: '總請求數',
                 unique_paths: '唯一路徑',
                 unique_ips: '唯一IP',
@@ -1540,6 +1573,8 @@
                 status: 'Status',
                 prev_page: 'Previous',
                 next_page: 'Next',
+                page_jump_placeholder: 'Page #',
+                page_jump_go: 'Go',
                 total_requests: 'Total Requests',
                 unique_paths: 'Unique Paths',
                 unique_ips: 'Unique IPs',
@@ -1673,6 +1708,8 @@
                 status: '状态',
                 prev_page: '上一页',
                 next_page: '下一页',
+                page_jump_placeholder: '页码',
+                page_jump_go: '跳转',
                 total_requests: '总请求数',
                 unique_paths: '唯一路径',
                 unique_ips: '唯一IP',
@@ -1806,6 +1843,8 @@
                 status: 'ステータス',
                 prev_page: '前へ',
                 next_page: '次へ',
+                page_jump_placeholder: 'ページ番号',
+                page_jump_go: '移動',
                 total_requests: '総リクエスト数',
                 unique_paths: 'ユニークパス',
                 unique_ips: 'ユニークIP',
@@ -2082,6 +2121,7 @@
                 total: totalPages,
                 count: totalResults
             });
+            document.getElementById('pageJumpInput').max = totalPages;
         }
 
         function applyLanguage() {
@@ -2845,6 +2885,21 @@
         function nextPage() {
             if (currentPage * pageSize < totalResults) {
                 currentPage++;
+                loadRequests();
+            }
+        }
+
+        // jumpToPage navigates straight to the page typed in the jump box,
+        // clamped to the valid range. Triggered by the Go button or Enter.
+        function jumpToPage() {
+            const input = document.getElementById('pageJumpInput');
+            const totalPages = Math.max(Math.ceil(totalResults / pageSize), 1);
+            let page = parseInt(input.value, 10);
+            if (isNaN(page)) return;
+            page = Math.min(Math.max(page, 1), totalPages);
+            input.value = '';
+            if (page !== currentPage) {
+                currentPage = page;
                 loadRequests();
             }
         }
