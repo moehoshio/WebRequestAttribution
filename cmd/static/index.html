@@ -2643,10 +2643,16 @@
                 if (raw) {
                     const parsed = JSON.parse(raw);
                     if (parsed && Array.isArray(parsed.widgets)) {
-                        // Keep widgetSeq ahead of any restored ids.
+                        // Keep widgetSeq ahead of any restored ids. Ids are
+                        // interpolated into markup, so anything not matching
+                        // the generated "w<n>" shape is regenerated rather
+                        // than trusted from storage.
                         parsed.widgets.forEach(function(w) {
                             const m = /^w(\d+)$/.exec(w.id || '');
                             if (m) widgetSeq = Math.max(widgetSeq, parseInt(m[1], 10) + 1);
+                        });
+                        parsed.widgets.forEach(function(w) {
+                            if (!/^w\d+$/.test(w.id || '')) w.id = 'w' + (widgetSeq++);
                         });
                         parsed.cols = clampCols(parsed.cols);
                         return parsed;

@@ -150,16 +150,25 @@ func (r *Runtime) Validate(allowedRoots []string) error {
 // cleanup. Empty roots disables the check (operators who haven't set
 // allowed_log_roots accept the risk).
 func pathAllowed(p string, roots []string) bool {
+	return PathAllowed(p, roots)
+}
+
+// PathAllowed reports whether p is inside one of roots. Both sides are
+// resolved through any symlinks first (using the deepest existing
+// ancestor when the leaf doesn't exist yet, e.g. a log file that will
+// be created later) so a symlink planted inside an allowed root cannot
+// be used to escape it. Empty roots disables the check.
+func PathAllowed(p string, roots []string) bool {
 	if len(roots) == 0 {
 		return true
 	}
-	cleaned := filepath.Clean(p)
+	cleaned := resolveSymlinks(p)
 	for _, root := range roots {
-		root = filepath.Clean(root)
-		if root == "" || root == "." {
+		root = strings.TrimSpace(root)
+		if root == "" || filepath.Clean(root) == "." {
 			continue
 		}
-		rel, err := filepath.Rel(root, cleaned)
+		rel, err := filepath.Rel(resolveSymlinks(root), cleaned)
 		if err != nil {
 			continue
 		}
@@ -170,6 +179,28 @@ func pathAllowed(p string, roots []string) bool {
 		return true
 	}
 	return false
+}
+
+// resolveSymlinks returns p with every symlink expanded. When p (or a
+// suffix of it) does not exist yet, the deepest existing ancestor is
+// resolved and the non-existing remainder re-appended, so the check
+// still reflects where the path would really land on this filesystem.
+func resolveSymlinks(p string) string {
+	cur := filepath.Clean(p)
+	rest := ""
+	for {
+		if resolved, err := filepath.EvalSymlinks(cur); err == nil {
+			return filepath.Clean(filepath.Join(resolved, rest))
+		}
+		parent := filepath.Dir(cur)
+		if parent == cur {
+			// Hit the filesystem root without resolving; fall back to
+			// the lexically-cleaned input.
+			return filepath.Clean(p)
+		}
+		rest = filepath.Join(filepath.Base(cur), rest)
+		cur = parent
+	}
 }
 
 // Store persists and broadcasts Runtime changes.

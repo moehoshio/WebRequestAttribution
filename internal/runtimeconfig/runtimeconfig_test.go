@@ -2,6 +2,7 @@ package runtimeconfig
 
 import (
 	"database/sql"
+	"os"
 	"path/filepath"
 	"sync/atomic"
 	"testing"
@@ -160,5 +161,41 @@ func TestSourceKey(t *testing.T) {
 	c := Source{Type: SourceSyslog, Addr: ":1514", Proto: "udp"}
 	if c.Key() == a.Key() {
 		t.Fatal("file and syslog must have different keys")
+	}
+}
+
+func TestPathAllowedSymlinkEscape(t *testing.T) {
+	root := t.TempDir()
+	outside := t.TempDir()
+
+	// A symlink inside the allowed root pointing outside it must not
+	// grant access to the link target.
+	link := filepath.Join(root, "evil")
+	if err := os.Symlink(outside, link); err != nil {
+		t.Skipf("cannot create symlink: %v", err)
+	}
+	if PathAllowed(link, []string{root}) {
+		t.Fatal("symlink escaping the root should be rejected")
+	}
+	if PathAllowed(filepath.Join(link, "secret.log"), []string{root}) {
+		t.Fatal("path under an escaping symlink should be rejected")
+	}
+
+	// Regular paths inside the root stay allowed, including files that
+	// do not exist yet.
+	if !PathAllowed(filepath.Join(root, "access.log"), []string{root}) {
+		t.Fatal("non-existent file directly under the root should be allowed")
+	}
+	sub := filepath.Join(root, "nginx")
+	if err := os.MkdirAll(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if !PathAllowed(filepath.Join(sub, "access.log"), []string{root}) {
+		t.Fatal("file in a subdirectory of the root should be allowed")
+	}
+
+	// Lexical traversal is still rejected.
+	if PathAllowed(filepath.Join(root, "..", "etc", "passwd"), []string{root}) {
+		t.Fatal("dot-dot traversal should be rejected")
 	}
 }

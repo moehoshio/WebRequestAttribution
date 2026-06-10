@@ -211,7 +211,7 @@ func main() {
 
 	server := &http.Server{
 		Addr:    cfg.ListenAddr,
-		Handler: mux,
+		Handler: securityHeaders(mux),
 	}
 
 	// Graceful shutdown
@@ -280,6 +280,26 @@ func importLogFile(store *storage.Store, path string, keywords []string, p parse
 	}
 
 	return count, scanner.Err()
+}
+
+// securityHeaders wraps the whole HTTP surface with defence-in-depth
+// response headers. The dashboard is a single self-contained page (one
+// inline script/style, no external assets), so the CSP allows inline
+// code but pins every other source to the same origin — an injected
+// payload cannot load external scripts or exfiltrate via fetch/XHR to
+// another host, and the UI cannot be framed for clickjacking.
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("Content-Security-Policy",
+			"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "+
+				"img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; "+
+				"form-action 'self'; frame-ancestors 'none'")
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("X-Frame-Options", "DENY")
+		h.Set("Referrer-Policy", "no-referrer")
+		next.ServeHTTP(w, r)
+	})
 }
 
 // randomPassword returns a URL-safe random password used when account
