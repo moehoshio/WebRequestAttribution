@@ -10,6 +10,11 @@ import (
 	"github.com/moehoshio/WebRequestAttribution/internal/storage"
 )
 
+// maxQueryLimit caps the per-request row count for /api/requests so a
+// single (possibly unauthenticated, in no-account mode) caller cannot
+// dump the entire table in one response.
+const maxQueryLimit = 1000
+
 type Handler struct {
 	store *storage.Store
 }
@@ -169,8 +174,19 @@ func parseFilter(r *http.Request) storage.QueryFilter {
 	if v := q.Get("limit"); v != "" {
 		f.Limit, _ = strconv.Atoi(v)
 	}
+	// Clamp paging values so a single request can't ask the database
+	// for an unbounded result set (memory/CPU exhaustion).
+	if f.Limit > maxQueryLimit {
+		f.Limit = maxQueryLimit
+	}
+	if f.Limit < 0 {
+		f.Limit = 0
+	}
 	if v := q.Get("offset"); v != "" {
 		f.Offset, _ = strconv.Atoi(v)
+	}
+	if f.Offset < 0 {
+		f.Offset = 0
 	}
 	if v := q.Get("start"); v != "" {
 		if t, err := time.Parse("2006-01-02", v); err == nil {
@@ -189,6 +205,5 @@ func parseFilter(r *http.Request) storage.QueryFilter {
 
 func writeJSON(w http.ResponseWriter, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	json.NewEncoder(w).Encode(v)
 }

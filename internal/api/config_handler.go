@@ -274,27 +274,10 @@ func (h *ConfigHandler) browseRoots() []string {
 
 // browseAllowed reports whether p is inside one of the configured
 // allowed_log_roots. With no roots configured everything is allowed,
-// matching runtimeconfig.pathAllowed.
+// matching runtimeconfig.PathAllowed (which also resolves symlinks so
+// a link planted inside a root cannot escape it).
 func (h *ConfigHandler) browseAllowed(p string) bool {
-	if len(h.allowedLogRoots) == 0 {
-		return true
-	}
-	cleaned := filepath.Clean(p)
-	for _, root := range h.allowedLogRoots {
-		root = filepath.Clean(strings.TrimSpace(root))
-		if root == "" || root == "." {
-			continue
-		}
-		rel, err := filepath.Rel(root, cleaned)
-		if err != nil {
-			continue
-		}
-		if rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-			continue
-		}
-		return true
-	}
-	return false
+	return runtimeconfig.PathAllowed(p, h.allowedLogRoots)
 }
 
 func writeJSONStatus(w http.ResponseWriter, status int, v interface{}) {

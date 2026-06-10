@@ -36,11 +36,14 @@ func UserFromContext(ctx context.Context) *User {
 // Handler is the HTTP-facing wrapper around Service. Split from Service
 // so the service is testable without touching net/http.
 type Handler struct {
-	svc *Service
+	svc     *Service
+	limiter *loginLimiter
 }
 
 // NewHandler wraps svc.
-func NewHandler(svc *Service) *Handler { return &Handler{svc: svc} }
+func NewHandler(svc *Service) *Handler {
+	return &Handler{svc: svc, limiter: newLoginLimiter()}
+}
 
 // Service returns the underlying service. Exposed for tests and
 // for callers that need to perform direct operations.
@@ -176,8 +179,20 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ip := clientIP(r)
+	// Throttle brute-force attempts. Keyed by both the client address
+	// and the targeted account so neither a single-source dictionary
+	// run nor a distributed attack against one username gets unlimited
+	// bcrypt comparisons. X-Forwarded-For is spoofable, so the
+	// username key is the one an attacker cannot rotate away from.
+	limitKeys := []string{"ip:" + ip, "user:" + normalizeUsername(req.Username)}
+	if h.limiter.tooMany(limitKeys...) {
+		_ = h.svc.Audit(nil, "login_throttled", req.Username, ip, "")
+		writeError(w, http.StatusTooManyRequests, "too many failed login attempts; try again later")
+		return
+	}
 	u, err := h.svc.Authenticate(req.Username, req.Password)
 	if err != nil {
+		h.limiter.recordFailure(limitKeys...)
 		// Audit the failed attempt with the supplied username so an
 		// operator can investigate brute-force patterns later.
 		_ = h.svc.Audit(nil, "login_failed", req.Username, ip, err.Error())
@@ -186,6 +201,7 @@ func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid credentials")
 		return
 	}
+	h.limiter.reset(limitKeys...)
 	token, _, err := h.svc.CreateSession(u.ID, ip, r.UserAgent())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "session error")
